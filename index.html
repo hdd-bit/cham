@@ -25,8 +25,23 @@
   header { position:relative; text-align:center; padding:48px 16px 28px; }
   h1 { font-size:clamp(32px,7vw,48px); margin:0 0 10px; }
   header p { margin:0; color:var(--muted); font-size:18px; }
-  main { position:relative; max-width:1000px; margin:0 auto; padding:0 16px 56px;
-         display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; }
+  main { position:relative; max-width:1000px; margin:0 auto; padding:0 16px 56px; }
+  section { margin-bottom:40px; }
+  h2 { font-size:26px; font-weight:normal; margin:0 0 14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; }
+  /* ⭐ 학생 작품: 크게, 금색 테두리로 강조 */
+  .star h2 { color:#ffd166; text-shadow:0 0 14px rgba(255,209,102,.5); }
+  .star .grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:20px; }
+  .star a.card { position:relative; padding:28px 26px; border:3px solid #ffd166;
+           background:linear-gradient(145deg, rgba(255,209,102,.20), rgba(255,140,60,.10));
+           box-shadow:0 0 0 6px rgba(255,209,102,.08), 0 10px 30px rgba(255,180,60,.25); }
+  .star a.card:hover, .star a.card:focus-visible { border-color:#fff1c2;
+           box-shadow:0 0 0 6px rgba(255,209,102,.18), 0 14px 36px rgba(255,180,60,.45); }
+  .star .emoji { font-size:64px; }
+  .star .name { font-size:28px; }
+  .star .maker { font-size:20px; color:#ffe08a; margin-top:10px; }
+  .badge { position:absolute; top:-14px; right:18px; background:#ffd166; color:#3b2400;
+           font-size:15px; padding:5px 14px; border-radius:99px; box-shadow:0 3px 10px rgba(0,0,0,.3); }
   a.card { display:flex; flex-direction:column; text-decoration:none; color:inherit;
            background:var(--card); border:2px solid var(--line); border-radius:22px; padding:22px 20px;
            backdrop-filter:blur(4px); transition:transform .15s, border-color .15s, box-shadow .15s; }
@@ -47,57 +62,70 @@
   <p>우리가 직접 만든 게임들이에요. 눌러서 놀아 보세요!</p>
 </header>
 <main>
-  <!-- 새 게임 추가: games/폴더이름/index.html 로 넣고, 아래 카드 하나를 복사해서 주소(href)·이모지·이름·설명만 바꾸면 돼요 -->
-  <a class="card" href="https://game.shamoos.com/">
-    <div class="emoji">⚾</div>
-    <div class="name">Korea Baseball Manager</div>
-    <div class="how">내가 감독이 되어 야구팀을 이끌어요</div>
-    <div class="maker">✏️ 김광훈 학생 제작</div>
-    <span class="tag">🖱️ 클릭 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/cham/">
-    <div class="emoji">🪐</div>
-    <div class="name">우주 행성 합치기 탐험대</div>
-    <div class="how">같은 행성끼리 합쳐서 더 큰 행성을 만들어요</div>
-    <span class="tag">⌨️ 방향키 · 🖱️ 마우스 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/tangle/">
-    <div class="emoji">☀️</div>
-    <div class="name">태양계 탐험대</div>
-    <div class="how">태양계를 누비며 퀴즈를 풀어요</div>
-    <span class="tag">⌨️ 방향키 · 스페이스바 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/sixseven/">
-    <div class="emoji">🌙</div>
-    <div class="name">천재 우주 과학자의 달 머지 프로젝트</div>
-    <div class="how">달을 쏘아 올려 같은 모양의 달끼리 합쳐요</div>
-    <span class="tag">🖱️ 클릭 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/nemo/">
-    <div class="emoji">🔥</div>
-    <div class="name">파이어 투더 플래닛</div>
-    <div class="how">불이 꺼지지 않게 지키며 우주 끝까지 가요</div>
-    <span class="tag">🖱️ 클릭 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/muguh/">
-    <div class="emoji">🚀</div>
-    <div class="name">Solar System Shooter</div>
-    <div class="how">무기를 뽑고 태양계 정렬 작전을 펼쳐요</div>
-    <span class="tag">⌨️ 방향키 · 스페이스바 · 👆 터치</span>
-  </a>
-  <a class="card" href="games/pastel/">
-    <div class="emoji">👾</div>
-    <div class="name">행성들을 맞춰라</div>
-    <div class="how">친구와 둘이 하는 우주 슈팅 게임</div>
-    <span class="tag">👥 2인용 · A/D 키 · ⬅️/➡️ 키</span>
-  </a>
-  <a class="card" href="games/chammyeong/">
-    <div class="emoji">🎪</div>
-    <div class="name">줄 곡예사 챔피언 챔명이</div>
-    <div class="how">줄 위에서 점프! 떨어지지 않게 버텨요</div>
-    <div class="maker">✏️ 김지유 학생 제작</div>
-    <span class="tag">⌨️ 스페이스바 · 👆 터치</span>
-  </a>
+  <!-- 새 게임 추가: games/폴더이름/index.html 로 넣고, 카드 하나를 복사해서 주소(href)·이모지·이름·설명만 바꾸면 돼요.
+       만든 학생 이름이 있는 게임은 위쪽 "학생 작품" 칸에 넣어요 -->
+  <section class="star">
+    <h2>⭐ 챔피언반 친구들이 만든 게임</h2>
+    <div class="grid">
+      <a class="card" href="https://game.shamoos.com/">
+        <span class="badge">⭐ 학생 작품</span>
+        <div class="emoji">⚾</div>
+        <div class="name">Korea Baseball Manager</div>
+        <div class="how">내가 감독이 되어 야구팀을 이끌어요</div>
+        <div class="maker">✏️ 김광훈 학생 제작</div>
+        <span class="tag">🖱️ 클릭 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/chammyeong/">
+        <span class="badge">⭐ 학생 작품</span>
+        <div class="emoji">🎪</div>
+        <div class="name">줄 곡예사 챔피언 챔명이</div>
+        <div class="how">줄 위에서 점프! 떨어지지 않게 버텨요</div>
+        <div class="maker">✏️ 김지유 학생 제작</div>
+        <span class="tag">⌨️ 스페이스바 · 👆 터치</span>
+      </a>
+    </div>
+  </section>
+  <section>
+    <h2>🪐 우주 게임 모음</h2>
+    <div class="grid">
+      <a class="card" href="games/cham/">
+        <div class="emoji">🪐</div>
+        <div class="name">우주 행성 합치기 탐험대</div>
+        <div class="how">같은 행성끼리 합쳐서 더 큰 행성을 만들어요</div>
+        <span class="tag">⌨️ 방향키 · 🖱️ 마우스 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/tangle/">
+        <div class="emoji">☀️</div>
+        <div class="name">태양계 탐험대</div>
+        <div class="how">태양계를 누비며 퀴즈를 풀어요</div>
+        <span class="tag">⌨️ 방향키 · 스페이스바 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/sixseven/">
+        <div class="emoji">🌙</div>
+        <div class="name">천재 우주 과학자의 달 머지 프로젝트</div>
+        <div class="how">달을 쏘아 올려 같은 모양의 달끼리 합쳐요</div>
+        <span class="tag">🖱️ 클릭 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/nemo/">
+        <div class="emoji">🔥</div>
+        <div class="name">파이어 투더 플래닛</div>
+        <div class="how">불이 꺼지지 않게 지키며 우주 끝까지 가요</div>
+        <span class="tag">🖱️ 클릭 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/muguh/">
+        <div class="emoji">🚀</div>
+        <div class="name">Solar System Shooter</div>
+        <div class="how">무기를 뽑고 태양계 정렬 작전을 펼쳐요</div>
+        <span class="tag">⌨️ 방향키 · 스페이스바 · 👆 터치</span>
+      </a>
+      <a class="card" href="games/pastel/">
+        <div class="emoji">👾</div>
+        <div class="name">행성들을 맞춰라</div>
+        <div class="how">친구와 둘이 하는 우주 슈팅 게임</div>
+        <span class="tag">👥 2인용 · A/D 키 · ⬅️/➡️ 키</span>
+      </a>
+    </div>
+  </section>
 </main>
 <footer>뒤로 가기를 누르면 언제든 게임방으로 돌아와요</footer>
 </body>
