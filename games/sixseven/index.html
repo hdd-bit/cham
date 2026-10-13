@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>천재 우주 과학자의 달 머지 프로젝트</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Pretendard:wght@400;600;800&display=swap');
+    
+    body {
+      font-family: 'Pretendard', sans-serif;
+      background-color: #030712;
+      color: #e2e8f0;
+      touch-action: manipulation;
+      overflow-x: hidden;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    
+    /* Cosmic Neon Glowing Effects */
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
+    }
+    .glow-violet {
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.35);
+    }
+    .glow-gold {
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    }
+    .text-glow-cyan {
+      text-shadow: 0 0 12px rgba(102, 252, 241, 0.8);
+    }
+    .text-glow-gold {
+      text-shadow: 0 0 14px rgba(255, 215, 0, 0.9);
+    }
+    .text-glow-violet {
+      text-shadow: 0 0 12px rgba(167, 139, 250, 0.8);
+    }
+
+    /* Ambient Outer Cosmic Background Animation */
+    @keyframes cosmic-pulse {
+      0%, 100% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+    .bg-cosmic {
+      background: linear-gradient(135deg, #030712, #0b0f29, #150d2a, #040d1a);
+      background-size: 300% 300%;
+      animation: cosmic-pulse 20s ease infinite;
+    }
+
+    /* Start Overlay Glassmorphism */
+    .glass-overlay {
+      background: rgba(7, 10, 22, 0.91);
+      backdrop-filter: blur(12px);
+    }
+
+    /* Pulsing Centered Launch Button Animation */
+    @keyframes pulse-space-glow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(102, 252, 241, 0.7), 0 0 40px rgba(139, 92, 246, 0.4);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 35px rgba(102, 252, 241, 1), 0 0 60px rgba(139, 92, 246, 0.7);
+        transform: scale(1.04);
+      }
+    }
+    .start-btn-anim {
+      animation: pulse-space-glow 2.2s infinite ease-in-out;
+    }
+
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="bg-cosmic flex flex-col items-center justify-center min-h-screen p-2 sm:p-4 select-none text-slate-100">
+
+  <div class="relative w-full max-w-[540px] bg-slate-950/80 border border-indigo-500/40 rounded-2xl p-3 sm:p-4 shadow-2xl glow-violet flex flex-col items-center overflow-hidden backdrop-blur-md">
+    
+    <!-- HEADER & LOGO -->
+    <header class="w-full text-center mb-2">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/80 border border-cyan-400/50 text-cyan-300 text-[11px] font-semibold mb-1.5 tracking-widest uppercase shadow-sm">
+        <span class="animate-pulse">✨</span> ASTROPHYSICS LAB SIMULATOR
+      </div>
+      <h1 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-indigo-200 to-purple-300 text-glow-cyan tracking-tight mb-2">
+        천재 우주 과학자의 달 머지 프로젝트
+      </h1>
+
+      <!-- MOON PHASE EVOLUTION SEQUENCE AT TOP -->
+      <div class="w-full bg-slate-900/90 border border-cyan-500/30 rounded-xl px-2.5 py-2 flex items-center justify-between text-center shadow-lg backdrop-blur-sm">
+        <div class="flex items-center justify-between w-full text-[11px] font-bold px-1">
+          <div class="flex flex-col items-center">
+            <span class="text-base leading-none">🌙</span>
+            <span class="text-[10px] text-amber-300 mt-0.5">초승달</span>
+          </div>
+          <span class="text-cyan-400 text-xs font-black">➔</span>
+          <div class="flex flex-col items-center">
+            <span class="text-base leading-none">🌓</span>
+            <span class="text-[10px] text-yellow-400 mt-0.5">상현달</span>
+          </div>
+          <span class="text-cyan-400 text-xs font-black">➔</span>
+          <div class="flex flex-col items-center">
+            <span class="text-base leading-none">🌕</span>
+            <span class="text-[10px] text-amber-100 mt-0.5">보름달</span>
+          </div>
+          <span class="text-cyan-400 text-xs font-black">➔</span>
+          <div class="flex flex-col items-center">
+            <span class="text-base leading-none">🌗</span>
+            <span class="text-[10px] text-blue-300 mt-0.5">하현달</span>
+          </div>
+          <span class="text-cyan-400 text-xs font-black">➔</span>
+          <div class="flex flex-col items-center">
+            <span class="text-base leading-none">🌘</span>
+            <span class="text-[10px] text-indigo-300 mt-0.5">그믐달</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- HUD DISPLAY PANEL -->
+    <div class="w-full flex justify-between items-center bg-slate-900/90 border border-slate-800 rounded-xl px-4 py-2.5 mb-3 shadow-inner">
+      <div class="flex flex-col">
+        <span class="text-[10px] text-indigo-300/80 font-bold uppercase tracking-wider">연구 점수 (SCORE)</span>
+        <span id="score-text" class="text-xl font-black text-amber-400 font-orbitron text-glow-gold">0</span>
+      </div>
+      
+      <!-- CEILING DROP COUNTDOWN HUD -->
+      <div class="flex flex-col items-center px-3 py-1 bg-red-950/50 border border-red-500/40 rounded-lg shadow-sm">
+        <span class="text-[9px] text-red-300 font-bold uppercase tracking-wider flex items-center gap-1">
+          <span class="animate-ping inline-block w-1.5 h-1.5 rounded-full bg-red-400"></span> 천장 강하
+        </span>
+        <span id="ceiling-count-text" class="text-xs font-black text-red-400 font-orbitron">7발 남음</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="flex flex-col items-end">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">최고 기록</span>
+          <span id="highscore-text" class="text-xs font-bold text-slate-300 font-orbitron">0</span>
+        </div>
+        <div class="w-px h-7 bg-indigo-900/60"></div>
+        <div class="flex flex-col items-center">
+          <span class="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mb-0.5">다음 발사</span>
+          <div id="next-preview" class="w-8 h-8 rounded-full bg-slate-950 border border-cyan-400/50 flex items-center justify-center text-lg shadow-md shadow-cyan-950">
+            🌙
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CANVAS CONTAINER WITH SPACE BACKDROP -->
+    <div class="relative w-full aspect-[460/560] rounded-xl overflow-hidden border border-indigo-500/30 bg-black shadow-2xl">
+      <canvas id="gameCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+      <!-- CENTERED START OVERLAY -->
+      <div id="start-overlay" class="absolute inset-0 z-20 glass-overlay flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-16 h-16 mb-3 rounded-full bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-3xl shadow-lg shadow-cyan-500/30">
+          🌕
+        </div>
+        <h2 class="text-2xl font-black text-cyan-300 text-glow-cyan mb-2">달 위상 머지 시뮬레이터</h2>
+        <p class="text-xs text-indigo-200/90 max-w-xs mb-6 leading-relaxed">
+          발사대로 달을 쏘아 올려 동일한 위상의 달을 합치세요!<br>
+          <span class="text-amber-300 font-bold">초승달 ➔ 상현달 ➔ 보름달 ➔ 하현달 ➔ 그믐달</span><br>
+          그믐달 2개를 합치면 <strong class="text-amber-400 font-black text-glow-gold">+10,000점</strong> 보너스와 함께 달 소멸!
+        </p>
+
+        <!-- Centered Launch Button -->
+        <button id="start-btn" onclick="startGame()" class="start-btn-anim px-8 py-4 rounded-full bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 text-slate-950 font-black text-lg sm:text-xl shadow-xl border border-cyan-100 cursor-pointer flex items-center gap-2 active:scale-95 transition-transform">
+          <span>🚀 우주 탐사 시작 (START)</span>
+        </button>
+      </div>
+
+      <!-- GAME OVER OVERLAY -->
+      <div id="gameover-overlay" class="hidden absolute inset-0 z-20 glass-overlay flex flex-col items-center justify-center p-6 text-center">
+        <div class="text-4xl mb-2">☄️</div>
+        <h2 class="text-2xl font-black text-red-400 text-shadow mb-1">관측 궤도 이탈!</h2>
+        <p class="text-xs text-slate-300 mb-4">달이 과도하게 축적되어 더 이상 관측이 불가능합니다.</p>
+        
+        <div class="bg-slate-900/90 border border-indigo-500/30 rounded-xl px-6 py-3 mb-6 shadow-inner">
+          <div class="text-xs text-slate-400 font-bold">최종 연구 점수</div>
+          <div id="final-score" class="text-3xl font-black text-amber-400 font-orbitron my-1 text-glow-gold">0</div>
+          <div class="text-[10px] text-teal-300" id="gameover-milestone">최고 기록 갱신 여부 확인중...</div>
+        </div>
+
+        <button onclick="startGame()" class="px-7 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 text-slate-950 font-bold text-base shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer">
+          🔄 다시 탐사하기
+        </button>
+      </div>
+    </div>
+
+    <!-- EDUCATIONAL INFO PANEL -->
+    <div id="info-card" class="w-full mt-3 bg-slate-950/90 border-l-4 border-cyan-400 rounded-r-xl p-3 text-xs leading-snug text-slate-300 shadow-md">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2">
+          <span id="info-icon" class="text-base">💡</span>
+          <span id="info-title" class="font-extrabold text-cyan-300 text-sm">천문학 연구 가이드</span>
+        </div>
+        <span id="info-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 border border-indigo-500/40 text-cyan-300">
+          음력 주기 안내
+        </span>
+      </div>
+      <p id="info-desc" class="text-slate-300 text-[11px] leading-relaxed">
+        발사각을 조절하여 위상이 같은 달을 맞추세요. 달이 점차 합쳐지면서 달의 모양과 음력 위상 변화 법칙을 탐구할 수 있습니다.
+      </p>
+    </div>
+
+  </div>
+
+<script>
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playCeilingWarningSound() {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const now = audioCtx.currentTime;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.linearRampToValueAtTime(80, now + 0.35);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  } catch (e) {}
+}
+
+function playShootSound() {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    const now = audioCtx.currentTime;
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  } catch (e) {}
+}
+
+function playMergeSound(level = 1) {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const baseFreq = 260 + level * 90;
+    const now = audioCtx.currentTime;
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.15);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  } catch (e) {}
+}
+
+function play10000ptFanfare() {
+  if (!audioCtx) return;
+  try {
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const startTime = audioCtx.currentTime + idx * 0.08;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.3, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.3);
+    });
+  } catch (e) {}
+}
+
+function playGameOverSound() {
+  if (!audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const now = audioCtx.currentTime;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.linearRampToValueAtTime(80, now + 0.5);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  } catch (e) {}
+}
+
+// MOON DATA CONFIGURATION (반지름 41px -> 37px로 10% 추가 축소)
+const MOON_PHASES = [
+  {
+    level: 0,
+    name: "초승달",
+    symbol: "🌙",
+    radius: 37,
+    score: 50,
+    lunarDays: "음력 3~4일경",
+    color: "#FDE047",
+    desc: "오른쪽 가느다란 눈썹 모양달입니다. 저녁 무렵 서쪽 하늘에서 잠시 보입니다."
+  },
+  {
+    level: 1,
+    name: "상현달",
+    symbol: "🌓",
+    radius: 37,
+    score: 200,
+    lunarDays: "음력 7~8일경",
+    color: "#FACC15",
+    desc: "오른쪽 반쪽이 밝게 빛나는 반달입니다. 정오 무렵 떠올라 한밤중에 서쪽으로 집니다."
+  },
+  {
+    level: 2,
+    name: "보름달",
+    symbol: "🌕",
+    radius: 37,
+    score: 500,
+    lunarDays: "음력 15~16일경 (망)",
+    color: "#FEF08A",
+    desc: "태양-지구-달이 일직선이 되어 전면이 밝게 차오른 원형 달입니다. 밤새도록 하늘을 밝힙니다."
+  },
+  {
+    level: 3,
+    name: "하현달",
+    symbol: "🌗",
+    radius: 37,
+    score: 1200,
+    lunarDays: "음력 22~23일경",
+    color: "#EAB308",
+    desc: "보름달 2개가 합쳐져 생성되었습니다! 왼쪽 반쪽이 밝게 빛나는 반달로 자정에 떠올라 낮에 집니다."
+  },
+  {
+    level: 4,
+    name: "그믐달",
+    symbol: "🌘",
+    radius: 37,
+    score: 3000,
+    lunarDays: "음력 27~28일경",
+    color: "#F59E0B",
+    desc: "하현달 2개가 합쳐져 생성되었습니다! 그믐달 2개를 합치면 10,000점과 함께 소멸합니다!"
+  }
+];
+
+// GAME STATE VARIABLES
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let score = 0;
+let highScore = localStorage.getItem('moon_merge_highscore') || 0;
+let isPlaying = false;
+let moons = [];
+let particles = [];
+let floatingTexts = [];
+let currentProjectile = null;
+let nextPhaseIndex = 0;
+let aimX = 230;
+let aimY = 100;
+
+// CEILING DESCENT MECHANIC STATE
+const BASE_CEILING_Y = 15;
+let ceilingY = BASE_CEILING_Y;
+let shotCount = 0;
+const SHOTS_PER_CEILING_DROP = 7;
+const CEILING_DROP_STEP = 26; // 천장 한번에 26px 하강
+let warningFlashTimer = 0;
+
+// DEEP SPACE BACKGROUND ANIMATION SYSTEM
+let bgStars = [];
+let shootingStars = [];
+let nebulaTime = 0;
+
+function initSpaceBackground() {
+  bgStars = [];
+  shootingStars = [];
+  for (let i = 0; i < 110; i++) {
+    bgStars.push({
+      x: Math.random() * 460,
+      y: Math.random() * 560,
+      radius: Math.random() * 1.6 + 0.4,
+      baseAlpha: Math.random() * 0.6 + 0.25,
+      alphaOffset: Math.random() * Math.PI * 2,
+      twinkleSpeed: Math.random() * 0.03 + 0.008,
+      color: Math.random() > 0.85 ? '#a5f3fc' : (Math.random() > 0.65 ? '#fde68a' : (Math.random() > 0.5 ? '#c4b5fd' : '#ffffff'))
+    });
+  }
+}
+
+function drawSpaceBackground() {
+  nebulaTime += 0.006;
+
+  // 1. Base Dark Cosmic Gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bgGrad.addColorStop(0, '#02040a');
+  bgGrad.addColorStop(0.5, '#060a1d');
+  bgGrad.addColorStop(1, '#0c071d');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 2. Dynamic Cosmic Nebulas
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  
+  const neb1X = 140 + Math.sin(nebulaTime) * 35;
+  const neb1Y = 160 + Math.cos(nebulaTime * 0.8) * 25;
+  const neb1 = ctx.createRadialGradient(neb1X, neb1Y, 10, neb1X, neb1Y, 210);
+  neb1.addColorStop(0, 'rgba(124, 58, 237, 0.22)');
+  neb1.addColorStop(0.5, 'rgba(67, 56, 202, 0.09)');
+  neb1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = neb1;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const neb2X = 330 + Math.cos(nebulaTime * 0.7) * 30;
+  const neb2Y = 390 + Math.sin(nebulaTime * 0.9) * 25;
+  const neb2 = ctx.createRadialGradient(neb2X, neb2Y, 20, neb2X, neb2Y, 220);
+  neb2.addColorStop(0, 'rgba(6, 182, 212, 0.18)');
+  neb2.addColorStop(0.6, 'rgba(14, 116, 144, 0.07)');
+  neb2.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = neb2;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.restore();
+
+  // 3. Twinkling Dynamic Stars
+  bgStars.forEach(s => {
+    s.alphaOffset += s.twinkleSpeed;
+    const currentAlpha = Math.abs(Math.sin(s.alphaOffset)) * s.baseAlpha + 0.12;
+    ctx.save();
+    ctx.globalAlpha = currentAlpha;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+    ctx.fill();
+    if (s.radius > 1.2) {
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = 5;
+    }
+    ctx.restore();
+  });
+
+  // 4. Shooting Stars
+  if (Math.random() < 0.012 && shootingStars.length < 2) {
+    shootingStars.push({
+      x: Math.random() * canvas.width * 0.8,
+      y: Math.random() * (canvas.height * 0.4),
+      length: Math.random() * 80 + 60,
+      speed: Math.random() * 9 + 11,
+      angle: Math.PI / 4 + (Math.random() - 0.5) * 0.2,
+      alpha: 1.0
+    });
+  }
+
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const st = shootingStars[i];
+    const tailX = st.x - Math.cos(st.angle) * st.length;
+    const tailY = st.y - Math.sin(st.angle) * st.length;
+
+    const grad = ctx.createLinearGradient(st.x, st.y, tailX, tailY);
+    grad.addColorStop(0, `rgba(255, 255, 255, ${st.alpha})`);
+    grad.addColorStop(0.25, `rgba(102, 252, 241, ${st.alpha * 0.75})`);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.save();
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(st.x, st.y);
+    ctx.lineTo(tailX, tailY);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#66fcf1';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(st.x, st.y, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    st.x += Math.cos(st.angle) * st.speed;
+    st.y += Math.sin(st.angle) * st.speed;
+    st.alpha -= 0.022;
+
+    if (st.alpha <= 0 || st.x > canvas.width + 100 || st.y > canvas.height + 100) {
+      shootingStars.splice(i, 1);
+    }
+  }
+}
+
+document.getElementById('highscore-text').innerText = Number(highScore).toLocaleString();
+
+// PROCEDURAL CRATER SEEDS
+const CRATER_SEEDS = [
+  { x: -0.3, y: -0.2, r: 0.18 },
+  { x: 0.2, y: -0.4, r: 0.14 },
+  { x: 0.4, y: 0.3, r: 0.22 },
+  { x: -0.1, y: 0.4, r: 0.16 },
+  { x: -0.5, y: 0.1, r: 0.12 },
+  { x: 0.1, y: 0.1, r: 0.25 }
+];
+
+/**
+ * 북반구 기준 달 위상 렌더링 (모든 달 노랑 & 짙은 회색 톤)
+ * Level 0 (초승달): 오른쪽 눈썹 모양 (노랑)
+ * Level 1 (상현달): 오른쪽 반달 (노랑)
+ * Level 2 (보름달): 보름달 전체 (노랑)
+ * Level 3 (하현달): 왼쪽 반달 (노랑)
+ * Level 4 (그믐달): 왼쪽 눈썹 모양 (초승달 좌우 반전 노랑)
+ */
+function drawProceduralMoon(ctx, x, y, level, isHover = false) {
+  const phase = MOON_PHASES[level];
+  const r = phase.radius;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Outer Atmosphere Glow
+  ctx.beginPath();
+  ctx.arc(0, 0, r + 8, 0, Math.PI * 2);
+  ctx.fillStyle = phase.color;
+  ctx.globalAlpha = isHover ? 0.45 : 0.25;
+  ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  // Base Dark Gray Sphere (모든 달 공통 짙은 회색 바탕)
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#1f2937";
+  ctx.fill();
+
+  // Dark Craters on base
+  CRATER_SEEDS.forEach(c => {
+    ctx.beginPath();
+    ctx.arc(c.x * r, c.y * r, c.r * r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+    ctx.fill();
+  });
+
+  // Illuminated Moon Phase Arcs (노란색 그라데이션)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.clip(); // Clip light within moon circle
+
+  const lightGradient = ctx.createRadialGradient(-r * 0.2, -r * 0.2, r * 0.1, 0, 0, r * 1.2);
+  lightGradient.addColorStop(0, "#FFFFFF");
+  lightGradient.addColorStop(0.5, phase.color);
+  lightGradient.addColorStop(1, "#D97706");
+
+  ctx.fillStyle = lightGradient;
+
+  if (level === 0) { 
+    // 1. 초승달 (오른쪽 가느다란 눈썹 모양)
+    ctx.beginPath();
+    ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    ctx.ellipse(0, 0, r * 0.65, r, 0, Math.PI / 2, -Math.PI / 2, true);
+    ctx.fill();
+  } else if (level === 1) { 
+    // 2. 상현달 (오른쪽 반달)
+    ctx.beginPath();
+    ctx.arc(0, 0, r, -Math.PI / 2, Math.PI / 2, false);
+    ctx.closePath();
+    ctx.fill();
+  } else if (level === 2) { 
+    // 3. 보름달 (전체 노란 보름달)
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    // Lunar Maria texture
+    ctx.fillStyle = "rgba(180, 140, 80, 0.25)";
+    ctx.beginPath();
+    ctx.arc(-r * 0.2, -r * 0.2, r * 0.4, 0, Math.PI * 2);
+    ctx.arc(r * 0.3, r * 0.2, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (level === 3) { 
+    // 4. 하현달 (왼쪽 반달)
+    ctx.beginPath();
+    ctx.arc(0, 0, r, Math.PI / 2, -Math.PI / 2, false);
+    ctx.closePath();
+    ctx.fill();
+  } else if (level === 4) { 
+    // 5. 그믐달 (왼쪽 가느다란 눈썹 모양 - 초승달 좌우 반전 노란 눈썹달)
+    ctx.beginPath();
+    ctx.arc(0, 0, r, Math.PI / 2, -Math.PI / 2, false);
+    ctx.ellipse(0, 0, r * 0.65, r, 0, -Math.PI / 2, Math.PI / 2, true);
+    ctx.fill();
+  }
+
+  ctx.restore(); // Restore clipping
+
+  // Crisp border ring
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Label INSIDE moon circle (scaled for adjusted moon size)
+  ctx.fillStyle = "#ffffff";
+  const fontSize = Math.max(12, Math.floor(r * 0.32));
+  ctx.font = `800 ${fontSize}px Pretendard, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+  ctx.shadowBlur = 6;
+  ctx.fillText(phase.name, 0, 0);
+
+  ctx.restore();
+}
+
+function createParticleBurst(x, y, color, count = 25) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 6 + 2;
+    particles.push({
+      x: x,
+      y: y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      radius: Math.random() * 3.5 + 1.5,
+      color: color,
+      alpha: 1.0,
+      decay: Math.random() * 0.025 + 0.012
+    });
+  }
+}
+
+function addFloatingText(x, y, text, color = "#FFD700", scale = 1.0) {
+  floatingTexts.push({
+    x: x,
+    y: y,
+    text: text,
+    color: color,
+    scale: scale,
+    alpha: 1.0,
+    vy: -1.8
+  });
+}
+
+function updateParticlesAndTexts() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.alpha -= p.decay;
+    if (p.alpha <= 0) {
+      particles.splice(i, 1);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.y += ft.vy;
+    ft.alpha -= 0.018;
+    if (ft.alpha <= 0) {
+      floatingTexts.splice(i, 1);
+    } else {
+      ctx.save();
+      ctx.globalAlpha = ft.alpha;
+      ctx.fillStyle = ft.color;
+      ctx.font = `black ${Math.round(16 * ft.scale)}px Orbitron, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#000000";
+      ctx.shadowBlur = 6;
+      ctx.fillText(ft.text, ft.x, ft.y);
+      ctx.restore();
+    }
+  }
+}
+
+// SHOOTER & PHYSICS CLASS
+class MoonObject {
+  constructor(x, y, phaseIndex, isStatic = false) {
+    this.x = x;
+    this.y = y;
+    this.phaseIndex = phaseIndex;
+    this.radius = MOON_PHASES[phaseIndex].radius;
+    this.vx = 0;
+    this.vy = 0;
+    this.isStatic = isStatic;
+  }
+
+  update() {
+    if (!this.isStatic) {
+      this.x += this.vx;
+      this.y += this.vy;
+
+      if (this.x - this.radius <= 0) {
+        this.x = this.radius;
+        this.vx *= -1;
+      } else if (this.x + this.radius >= canvas.width) {
+        this.x = canvas.width - this.radius;
+        this.vx *= -1;
+      }
+    }
+  }
+
+  draw() {
+    drawProceduralMoon(ctx, this.x, this.y, this.phaseIndex);
+  }
+}
+
+function executeMerge(m1, m2) {
+  const currentLevel = m1.phaseIndex;
+  // 합쳐질 때 나아가는 위쪽 방향(더 높은 위치)으로 자석처럼 끌려 올라가도록 상단 Y 좌표 기준으로 설정
+  const mergedX = (m1.x + m2.x) / 2;
+  const mergedY = Math.max(15 + MOON_PHASES[currentLevel].radius, Math.min(m1.y, m2.y) - 4);
+
+  // 배열 인덱스 음수 처리 문제 방지를 위해 안전하게 존재 여부 확인 후 제거
+  const idx1 = moons.indexOf(m1);
+  if (idx1 !== -1) moons.splice(idx1, 1);
+
+  const idx2 = moons.indexOf(m2);
+  if (idx2 !== -1) moons.splice(idx2, 1);
+
+  if (currentLevel === 4) {
+    // 그믐달(Level 4) + 그믐달(Level 4) -> 10,000점 획득 후 소멸
+    addScore(10000);
+    addFloatingText(mergedX, mergedY - 20, "🌟 +10,000 PT! 그믐달 완전 소멸!", "#FFD700", 1.5);
+    createParticleBurst(mergedX, mergedY, "#A5B4FC", 60);
+    createParticleBurst(mergedX, mergedY, "#FFD700", 60);
+    play10000ptFanfare();
+    updateInfoCard(4);
+  } else {
+    // 초승달(0)->상현달(1)->보름달(2)->하현달(3)->그믐달(4)
+    const nextIdx = currentLevel + 1;
+    const newPhase = MOON_PHASES[nextIdx];
+
+    const newMoon = new MoonObject(mergedX, mergedY, nextIdx, true);
+    moons.push(newMoon);
+
+    addScore(newPhase.score);
+    updateInfoCard(nextIdx);
+    createParticleBurst(mergedX, mergedY, newPhase.color, 35);
+    playMergeSound(nextIdx);
+
+    if (nextIdx === 2) {
+      addFloatingText(mergedX, mergedY, `🌕 보름달 달성! +${newPhase.score}`, "#FFFBEB", 1.2);
+    } else if (nextIdx === 3) {
+      addFloatingText(mergedX, mergedY, `🌗 하현달 달성! +${newPhase.score}`, "#93C5FD", 1.2);
+    } else if (nextIdx === 4) {
+      addFloatingText(mergedX, mergedY, `🌘 그믐달 달성! +${newPhase.score}`, "#A5B4FC", 1.3);
+    } else {
+      addFloatingText(mergedX, mergedY, `+${newPhase.score}`, newPhase.color, 1.1);
+    }
+  }
+}
+
+// 달의 상하좌우 모든 면 접촉 시 연쇄 합치기 검사
+function checkAndMergeAllMoons() {
+  let hasMerged = false;
+  for (let i = 0; i < moons.length; i++) {
+    for (let j = i + 1; j < moons.length; j++) {
+      const m1 = moons[i];
+      const m2 = moons[j];
+      if (m1.phaseIndex === m2.phaseIndex) {
+        const dx = m1.x - m2.x;
+        const dy = m1.y - m2.y;
+        const dist = Math.hypot(dx, dy);
+        // 반지름 합보다 가까워지면(어느 면이든 닿으면) 합치기 실행
+        if (dist <= (m1.radius + m2.radius + 1.5)) {
+          executeMerge(m1, m2);
+          hasMerged = true;
+          break;
+        }
+      }
+    }
+    if (hasMerged) break;
+  }
+  return hasMerged;
+}
+
+function checkOverlap(m1, m2) {
+  const dx = m1.x - m2.x;
+  const dy = m1.y - m2.y;
+  const dist = Math.hypot(dx, dy);
+  return dist <= (m1.radius + m2.radius + 1.5);
+}
+
+function separateStaticMoons() {
+  for (let k = 0; k < 5; k++) {
+    for (let i = 0; i < moons.length; i++) {
+      for (let j = i + 1; j < moons.length; j++) {
+        const m1 = moons[i];
+        const m2 = moons[j];
+        const dx = m2.x - m1.x;
+        const dy = m2.y - m1.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = m1.radius + m2.radius;
+
+        if (dist < minDist && dist > 0) {
+          const overlap = (minDist - dist) / 2;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          m1.x -= nx * overlap;
+          m1.y -= ny * overlap;
+          m2.x += nx * overlap;
+          m2.y += ny * overlap;
+
+          m1.x = Math.max(m1.radius, Math.min(canvas.width - m1.radius, m1.x));
+          m2.x = Math.max(m2.radius, Math.min(canvas.width - m2.radius, m2.x));
+          m1.y = Math.max(m1.radius + ceilingY, m1.y);
+          m2.y = Math.max(m2.radius + ceilingY, m2.y);
+        }
+      }
+    }
+  }
+}
+
+function applyUpwardMagneticAttraction() {
+  for (let m of moons) {
+    if (m.y - m.radius <= ceilingY + 1) {
+      m.y = ceilingY + m.radius;
+      continue;
+    }
+
+    let pullToHigher = false;
+    for (let other of moons) {
+      if (other === m) continue;
+      // 상단에 위치한 다른 달과 인접해 있을 경우 아래쪽에 딱 붙도록 밀착
+      if (other.y < m.y) {
+        const dx = other.x - m.x;
+        const dy = other.y - m.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < (m.radius + other.radius) * 1.8) {
+          m.x += (dx / dist) * 0.8;
+          m.y += (dy / dist) * 1.8;
+          pullToHigher = true;
+        }
+      }
+    }
+
+    // 위에 인접한 달이 없으면 버블버블처럼 천장 방향으로 흡착
+    if (!pullToHigher) {
+      m.y -= 2.0;
+    }
+
+    if (m.y - m.radius < ceilingY) {
+      m.y = ceilingY + m.radius;
+    }
+  }
+}
+
+function updateInfoCard(phaseIndex) {
+  const phase = MOON_PHASES[phaseIndex];
+  document.getElementById('info-title').innerText = `${phase.name} (${phase.symbol})`;
+  document.getElementById('info-badge').innerText = phase.lunarDays;
+  document.getElementById('info-desc').innerText = phase.desc;
+  document.getElementById('info-card').style.borderLeftColor = phase.color;
+}
+
+function prepareNextMoon() {
+  nextPhaseIndex = Math.floor(Math.random() * 2); // 0 (초승달) or 1 (상현달)
+  document.getElementById('next-preview').innerText = MOON_PHASES[nextPhaseIndex].symbol;
+}
+
+function updateCeilingHUD() {
+  const remaining = SHOTS_PER_CEILING_DROP - shotCount;
+  const countEl = document.getElementById('ceiling-count-text');
+  if (countEl) {
+    countEl.innerText = `${remaining}발 남음`;
+  }
+}
+
+function fireMoon() {
+  if (!isPlaying || currentProjectile) return;
+
+  initAudio();
+  playShootSound();
+
+  // 발사 횟수 증가 및 천장 하강 체크
+  shotCount++;
+  if (shotCount >= SHOTS_PER_CEILING_DROP) {
+    shotCount = 0;
+    ceilingY += CEILING_DROP_STEP;
+    warningFlashTimer = 40; // 붉은 경고 펄스
+    playCeilingWarningSound();
+    addFloatingText(canvas.width / 2, ceilingY + 40, "🚨 천장 하강! 압박감 증가!", "#FF4444", 1.3);
+  }
+  updateCeilingHUD();
+
+  const launchX = canvas.width / 2;
+  const launchY = canvas.height - 65;
+
+  const dx = aimX - launchX;
+  const dy = aimY - launchY;
+  const angle = Math.atan2(dy, dx);
+  const speed = 14;
+
+  currentProjectile = new MoonObject(launchX, launchY, nextPhaseIndex);
+  currentProjectile.vx = Math.cos(angle) * speed;
+  currentProjectile.vy = Math.sin(angle) * speed;
+
+  if (currentProjectile.vy > -2) {
+    currentProjectile.vy = -12;
+  }
+
+  prepareNextMoon();
+}
+
+function updateAimPosition(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  aimX = (clientX - rect.left) * scaleX;
+  aimY = (clientY - rect.top) * scaleY;
+}
+
+canvas.addEventListener('mousemove', (e) => {
+  updateAimPosition(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 0) {
+    updateAimPosition(e.touches[0].clientX, e.touches[0].clientY);
+  }
+}, { passive: true });
+
+canvas.addEventListener('click', () => {
+  fireMoon();
+});
+
+canvas.addEventListener('touchend', () => {
+  fireMoon();
+});
+
+function addScore(pts) {
+  score += pts;
+  document.getElementById('score-text').innerText = score.toLocaleString();
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('moon_merge_highscore', highScore);
+    document.getElementById('highscore-text').innerText = Number(highScore).toLocaleString();
+  }
+}
+
+function triggerGameOver() {
+  isPlaying = false;
+  playGameOverSound();
+  document.getElementById('final-score').innerText = score.toLocaleString();
+  
+  const milestoneEl = document.getElementById('gameover-milestone');
+  if (score >= highScore && score > 0) {
+    milestoneEl.innerText = "🎉 축하합니다! 최고 연구 기록 달성!";
+  } else {
+    milestoneEl.innerText = `최고 기록: ${Number(highScore).toLocaleString()} PT`;
+  }
+
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+}
+
+function initPreFilledBoard() {
+  moons = [];
+  const rows = 2;
+  const radius = MOON_PHASES[0].radius;
+  const startY = ceilingY + radius;
+  const rowSpacing = radius * 1.55;
+  
+  for (let r = 0; r < rows; r++) {
+    const isEven = (r % 2 === 0);
+    const cols = isEven ? 4 : 3;
+    const startX = isEven ? 57.5 : 115;
+    const spacingX = 115;
+
+    for (let c = 0; c < cols; c++) {
+      const x = startX + c * spacingX;
+      const y = startY + r * rowSpacing;
+      // 0 (초승달), 1 (상현달), 가끔 2 (보름달) 무작위 배치
+      const phaseIdx = Math.random() < 0.5 ? 0 : (Math.random() < 0.85 ? 1 : 2);
+      moons.push(new MoonObject(x, y, phaseIdx, true));
+    }
+  }
+
+  // 초기 위치 물리 정돈 및 상단 흡착
+  for (let i = 0; i < 5; i++) {
+    separateStaticMoons();
+    applyUpwardMagneticAttraction();
+  }
+}
+
+function startGame() {
+  initAudio();
+  score = 0;
+  ceilingY = BASE_CEILING_Y;
+  shotCount = 0;
+  warningFlashTimer = 0;
+  particles = [];
+  floatingTexts = [];
+  currentProjectile = null;
+  moons = [];
+  isPlaying = true;
+
+  document.getElementById('score-text').innerText = "0";
+  document.getElementById('start-overlay').style.display = 'none';
+  document.getElementById('gameover-overlay').classList.add('hidden');
+
+  updateCeilingHUD();
+  prepareNextMoon();
+  updateInfoCard(0);
+}
+
+function gameLoop() {
+  if (canvas.width !== 460 || canvas.height !== 560) {
+    canvas.width = 460;
+    canvas.height = 560;
+  }
+
+  drawSpaceBackground();
+
+  // Dynamic Ceiling Boundary Line & Hazard Area
+  ctx.save();
+  if (ceilingY > BASE_CEILING_Y) {
+    // Fill upper space with red warning tint
+    ctx.fillStyle = "rgba(239, 68, 68, 0.18)";
+    ctx.fillRect(0, 0, canvas.width, ceilingY);
+  }
+
+  // Ceiling Boundary Glow Line
+  ctx.strokeStyle = warningFlashTimer > 0 ? "rgba(239, 68, 68, 0.95)" : "rgba(102, 252, 241, 0.7)";
+  ctx.lineWidth = 3;
+  ctx.shadowColor = warningFlashTimer > 0 ? "#EF4444" : "#66FCF1";
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(0, ceilingY);
+  ctx.lineTo(canvas.width, ceilingY);
+  ctx.stroke();
+
+  // Red Screen Flash Effect on Ceiling Descent
+  if (warningFlashTimer > 0) {
+    warningFlashTimer--;
+    ctx.fillStyle = `rgba(239, 68, 68, ${0.28 * (warningFlashTimer / 40)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.restore();
+
+  // Danger Line (Bottom Limit)
+  const dangerY = canvas.height - 110;
+  ctx.strokeStyle = "rgba(239, 68, 68, 0.35)";
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, dangerY);
+  ctx.lineTo(canvas.width, dangerY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Aiming Vector Line
+  const launchX = canvas.width / 2;
+  const launchY = canvas.height - 65;
+
+  if (isPlaying && !currentProjectile) {
+    ctx.strokeStyle = "rgba(102, 252, 241, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(launchX, launchY);
+
+    const dx = aimX - launchX;
+    const dy = aimY - launchY;
+    const len = Math.hypot(dx, dy) || 1;
+    const targetX = launchX + (dx / len) * 350;
+    const targetY = launchY + (dy / len) * 350;
+
+    ctx.lineTo(targetX, Math.min(targetY, launchY - 20));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawProceduralMoon(ctx, launchX, launchY, nextPhaseIndex, true);
+  }
+
+  // Update & Draw Projectile
+  if (currentProjectile) {
+    currentProjectile.update();
+    currentProjectile.draw();
+
+    // 천장 충돌 처리
+    if (currentProjectile.y - currentProjectile.radius <= ceilingY) {
+      currentProjectile.y = ceilingY + currentProjectile.radius;
+      currentProjectile.isStatic = true;
+      moons.push(currentProjectile);
+      currentProjectile = null;
+    } else {
+      // 기존 달들과의 360도 전방위 충돌 및 머지 검사
+      for (let i = moons.length - 1; i >= 0; i--) {
+        const target = moons[i];
+        if (checkOverlap(currentProjectile, target)) {
+          if (currentProjectile.phaseIndex === target.phaseIndex) {
+            // 동일 위상인 경우 즉시 머지
+            executeMerge(currentProjectile, target);
+          } else {
+            // 다른 위상인 경우 밀려나며 고정
+            const dx = currentProjectile.x - target.x;
+            const dy = currentProjectile.y - target.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            const minDist = currentProjectile.radius + target.radius;
+
+            currentProjectile.x = target.x + (dx / dist) * (minDist + 1);
+            currentProjectile.y = target.y + (dy / dist) * (minDist + 1);
+            currentProjectile.isStatic = true;
+            moons.push(currentProjectile);
+          }
+
+          currentProjectile = null;
+          break;
+        }
+      }
+    }
+  }
+
+  separateStaticMoons();
+  // 자석처럼 위쪽 천장 및 주변 행성에 밀착시키는 자기력 적용
+  applyUpwardMagneticAttraction();
+
+  // 달들이 서로 밀쳐진 후에도 닿은 동일 위상의 달이 있다면 연쇄 합치기
+  while (checkAndMergeAllMoons()) {}
+
+  moons.forEach(m => m.draw());
+
+  updateParticlesAndTexts();
+
+  if (isPlaying) {
+    for (let m of moons) {
+      if (m.y + m.radius >= dangerY) {
+        triggerGameOver();
+        break;
+      }
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// START ANIMATION LOOP ON WINDOW LOAD
+window.onload = function() {
+  initSpaceBackground();
+  requestAnimationFrame(gameLoop);
+};
+</script>
+</body>
+</html>

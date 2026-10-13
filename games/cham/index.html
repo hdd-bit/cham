@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>우주 행성 합치기 탐험대</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Cute Rounded Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gaebaram&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Jua', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            color: #ffffff;
+            touch-action: none;
+        }
+
+        /* Cute White Button Styling */
+        .btn-white {
+            background-color: #ffffff;
+            color: #1e293b;
+            border: 3px solid #e2e8f0;
+            box-shadow: 0 4px 0 #cbd5e1, 0 8px 15px rgba(0,0,0,0.3);
+            transition: all 0.15s ease;
+            border-radius: 9999px;
+            cursor: pointer;
+        }
+
+        .btn-white:hover {
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #cbd5e1, 0 10px 18px rgba(0,0,0,0.4);
+        }
+
+        .btn-white:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #cbd5e1, 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Glass Container Styling */
+        .glass-box {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 4px solid rgba(255, 255, 255, 0.25);
+            border-top: none;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+        }
+
+        /* Scrollbar custom for sidebar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        /* Pulse glow for danger line */
+        @keyframes linePulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.9; }
+        }
+
+        .danger-line {
+            animation: linePulse 1.2s infinite ease-in-out;
+        }
+
+        /* Canvas interaction prevention */
+        #gameCanvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between h-full h-[100dvh] w-screen relative overflow-hidden select-none p-1 sm:p-2">
+
+    <canvas id="bgCanvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- Header UI Bar -->
+    <header class="relative z-10 w-full max-w-5xl px-2 pt-1 sm:pt-2 flex items-center justify-between gap-2 shrink-0">
+        <!-- Title & Level -->
+        <div class="flex items-center space-x-2 sm:space-x-3 bg-slate-900/80 backdrop-blur-md px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-700">
+            <i class="fa-solid fa-user-astronaut text-lg sm:text-2xl text-yellow-300"></i>
+            <div>
+                <h1 class="text-sm sm:text-xl md:text-2xl text-yellow-300 tracking-wide leading-none font-bold">우주 행성 합치기</h1>
+                <p class="text-[10px] sm:text-xs text-slate-300">4학년 과학교실 🚀</p>
+            </div>
+        </div>
+
+        <!-- Hearts (Life) -->
+        <div class="flex items-center space-x-1 sm:space-x-1.5 bg-slate-900/80 backdrop-blur-md px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-2xl border border-slate-700">
+            <span class="text-xs sm:text-sm font-bold text-slate-300 mr-0.5 hidden md:inline">생명:</span>
+            <div id="heartContainer" class="flex space-x-0.5 sm:space-x-1 text-base sm:text-xl md:text-2xl">
+                <i class="fa-solid fa-heart text-pink-500 transition-colors duration-300"></i>
+                <i class="fa-solid fa-heart text-pink-500 transition-colors duration-300"></i>
+                <i class="fa-solid fa-heart text-pink-500 transition-colors duration-300"></i>
+                <i class="fa-solid fa-heart text-pink-500 transition-colors duration-300"></i>
+                <i class="fa-solid fa-heart text-pink-500 transition-colors duration-300"></i>
+            </div>
+        </div>
+
+        <!-- Score Board -->
+        <div class="flex items-center space-x-1.5 sm:space-x-2 bg-slate-900/80 backdrop-blur-md px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-2xl border border-slate-700">
+            <i class="fa-solid fa-star text-yellow-400 text-base sm:text-xl"></i>
+            <div class="text-right">
+                <div class="text-[10px] sm:text-xs text-slate-400">점수</div>
+                <div id="scoreText" class="text-base sm:text-2xl text-white font-bold tracking-wider leading-none">0</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative z-10 w-full max-w-6xl flex-1 flex flex-col md:flex-row items-center justify-center p-1 sm:p-2 gap-2 sm:gap-3 overflow-hidden min-h-0">
+
+        <!-- Left Side Panel: NEXT Planet & Planet Order Legend -->
+        <aside class="w-full md:w-52 lg:w-56 flex md:flex-col justify-between items-center gap-2 z-10 shrink-0">
+            <!-- Next Planet Box -->
+            <div class="bg-slate-900/85 backdrop-blur-md p-2 sm:p-3 rounded-2xl border border-slate-700 w-1/2 md:w-full flex md:flex-col items-center justify-between md:justify-center text-center shadow-lg">
+                <span class="text-[11px] sm:text-xs text-cyan-300 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-angles-right"></i> 다음 행성 (NEXT)
+                </span>
+                <div id="nextPlanetPreview" class="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center my-0.5 sm:my-1 relative">
+                    <!-- SVG rendered dynamically -->
+                </div>
+                <span id="nextPlanetName" class="text-xs sm:text-sm font-bold text-yellow-200">수성</span>
+            </div>
+
+            <!-- Planet Evolution Guide -->
+            <div class="bg-slate-900/85 backdrop-blur-md p-2 sm:p-3 rounded-2xl border border-slate-700 w-1/2 md:w-full hidden sm:flex flex-col items-center shadow-lg">
+                <span class="text-[11px] sm:text-xs text-slate-300 font-bold mb-1.5 flex items-center gap-1">
+                    <i class="fa-solid fa-diagram-project text-yellow-400"></i> 태양계 순서 도감
+                </span>
+                <div id="planetLegend" class="grid grid-cols-4 md:grid-cols-2 gap-1 w-full text-xs">
+                    <!-- Dynamic legend items -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Stage: Claw Container & Physics Glass Box -->
+        <section id="gameArea" class="relative flex-1 flex flex-col items-center justify-center w-full h-full max-h-[58vh] sm:max-h-[68vh] md:max-h-[74vh] max-w-[460px] min-h-0">
+            <!-- Glass Container Box -->
+            <div id="containerWrapper" class="relative w-full h-full glass-box overflow-hidden flex flex-col items-center">
+                <!-- Limit Line (80% Height Danger Zone) -->
+                <div id="limitLine" class="absolute w-full border-b-2 border-dashed border-red-500/80 z-20 pointer-events-none danger-line flex justify-end px-2" style="top: 20%;">
+                    <span class="text-[9px] sm:text-[10px] bg-red-600/80 text-white px-1.5 py-0.5 rounded-full uppercase font-sans tracking-wider">위험선 (80%)</span>
+                </div>
+
+                <!-- Game Canvas -->
+                <canvas id="gameCanvas" class="w-full h-full block cursor-pointer"></canvas>
+            </div>
+        </section>
+
+        <!-- Right Side Panel: Collapsible Science Fact Card -->
+        <aside class="w-full md:w-60 lg:w-64 z-10 shrink-0">
+            <div id="factCard" class="bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-700 p-2.5 sm:p-3 shadow-xl transition-all duration-300">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-1.5">
+                    <div class="flex items-center space-x-1.5 text-cyan-300">
+                        <i class="fa-solid fa-atom text-base sm:text-lg animate-spin" style="animation-duration: 8s;"></i>
+                        <span class="font-bold text-xs sm:text-sm">우주 과학 상식 노트</span>
+                    </div>
+                    <!-- Toggle Fold Button -->
+                    <button id="toggleFactBtn" class="text-[11px] sm:text-xs px-2 py-0.5 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition">
+                        <i id="toggleFactIcon" class="fa-solid fa-chevron-up"></i>
+                        <span id="toggleFactText">접기</span>
+                    </button>
+                </div>
+
+                <div id="factContent" class="space-y-1.5 text-slate-200">
+                    <div class="flex items-center space-x-2">
+                        <span id="factBadge" class="bg-yellow-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold">탐험 시작</span>
+                        <h3 id="factPlanetTitle" class="font-bold text-yellow-300 text-sm sm:text-base">반가워요!</h3>
+                    </div>
+                    <p id="factDescription" class="text-[11px] sm:text-xs md:text-sm text-slate-300 leading-snug bg-slate-800/60 p-2 sm:p-2.5 rounded-xl border border-slate-700/50 max-h-24 md:max-h-36 overflow-y-auto">
+                        같은 행성을 두 개 합치면 더 큰 다음 행성이 돼요! <br>수성 ➔ 금성 ➔ 지구 ➔ 화성 ➔ 목성 ➔ 토성 ➔ 천왕성 ➔ 해왕성 순서대로 합쳐보세요.
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- Bottom Control Bar & Action Buttons -->
+    <div class="relative z-20 w-full max-w-5xl px-2 pb-1 sm:pb-2 flex items-center justify-between gap-2 shrink-0">
+        <!-- Touch Control Helper -->
+        <div class="text-[10px] sm:text-xs text-slate-400 hidden sm:flex items-center gap-2 bg-slate-900/60 px-3 py-1.5 rounded-full">
+            <span><i class="fa-solid fa-keyboard text-slate-300"></i> 키보드: <b>← →</b> 이동, <b>Space / ↓</b> 떨어뜨리기</span>
+            <span>|</span>
+            <span><i class="fa-solid fa-hand-pointer text-slate-300"></i> 화면 터치/클릭 가능</span>
+        </div>
+
+        <!-- Right Bottom Buttons (White theme) -->
+        <div class="flex items-center space-x-2 sm:space-x-3 ml-auto">
+            <!-- Shuffle Button -->
+            <button id="shuffleBtn" class="btn-white px-3 sm:px-4 py-1.5 sm:py-2.5 font-bold flex items-center space-x-1.5 text-xs sm:text-base">
+                <i class="fa-solid fa-shuffle text-indigo-600"></i>
+                <span>행성 섞기</span>
+            </button>
+
+            <!-- Fullscreen Button -->
+            <button id="fullscreenBtn" class="btn-white px-3 sm:px-4 py-1.5 sm:py-2.5 font-bold flex items-center space-x-1.5 text-xs sm:text-base">
+                <i class="fa-solid fa-expand text-slate-700"></i>
+                <span class="hidden sm:inline">전체화면</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="startModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-lg">
+        <div class="bg-slate-900/95 border-2 border-slate-700 rounded-3xl p-5 sm:p-8 max-w-lg w-full text-center shadow-2xl relative overflow-hidden max-h-[90dvh] overflow-y-auto">
+            <!-- Decorative Glow -->
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <i class="fa-solid fa-rocket text-4xl sm:text-5xl text-yellow-300 mb-2 sm:mb-3 animate-bounce"></i>
+            <h2 class="text-2xl sm:text-4xl text-white font-extrabold mb-1 tracking-wide">우주 행성 합치기</h2>
+            <p class="text-cyan-300 text-xs sm:text-sm mb-4 sm:mb-6">초등학교 4학년을 위한 신나는 과학 탐험 게임!</p>
+
+            <!-- How to play instructions -->
+            <div class="bg-slate-800/80 p-3 sm:p-4 rounded-2xl text-left text-xs sm:text-sm text-slate-200 space-y-2 mb-5 sm:mb-6 border border-slate-700">
+                <p class="font-bold text-yellow-300 text-xs sm:text-sm mb-1 flex items-center gap-1">
+                    <i class="fa-solid fa-gamepad"></i> 게임 방법:
+                </p>
+                <div class="flex items-start space-x-2">
+                    <span class="bg-slate-700 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs">1</span>
+                    <span>상단의 <b>회색 집게</b>를 좌우로 움직여 행성을 떨어뜨릴 위치를 정해요. (키보드 방향키 또는 마우스/터치)</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <span class="bg-slate-700 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs">2</span>
+                    <span>같은 행성 2개가 만나면 <b>다음 단계의 더 큰 행성</b>으로 합쳐집니다! (수성 ➔ 금성 ➔ 지구...)</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <span class="bg-slate-700 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs">3</span>
+                    <span>행성을 합칠 때마다 새로운 <b>4학년 과학 상식 카드</b>가 나타나요.</span>
+                </div>
+                <div class="flex items-start space-x-2">
+                    <span class="bg-slate-700 text-cyan-300 font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs">4</span>
+                    <span>최종 목표인 <b>해왕성</b>이 만들어지면 <b>1000점 보너스</b>를 받고 팡! 사라집니다.</span>
+                </div>
+                <div class="flex items-start space-x-2 text-pink-300">
+                    <span class="bg-pink-900/50 text-pink-300 font-bold px-1.5 py-0.5 rounded text-[10px] sm:text-xs">주의</span>
+                    <span>유리통 80% 위험선을 행성이 오랫동안 넘으면 <b>하트(생명)가 1개 차감</b>돼요!</span>
+                </div>
+            </div>
+
+            <!-- Big Start Button -->
+            <button id="startBtn" onclick="startGame()" type="button" class="btn-white text-xl sm:text-2xl font-black px-8 sm:px-10 py-3 sm:py-4 w-full text-slate-900 tracking-wider hover:scale-105 active:scale-95 transition-all cursor-pointer relative z-50">
+                🚀 시작!
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-lg hidden" style="display: none;">
+        <div class="bg-slate-900/95 border-2 border-slate-700 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl">
+            <i class="fa-solid fa-heart-crack text-4xl sm:text-5xl text-pink-500 mb-3 animate-pulse"></i>
+            <h2 class="text-2xl sm:text-3xl text-white font-extrabold mb-1">탐험 종료!</h2>
+            <p class="text-slate-400 text-xs sm:text-sm mb-4">하트를 모두 사용했어요.</p>
+
+            <div class="bg-slate-800 p-3 sm:p-4 rounded-2xl mb-5 sm:mb-6">
+                <span class="text-xs text-slate-400">최종 점수</span>
+                <div id="finalScoreText" class="text-3xl sm:text-4xl text-yellow-300 font-bold">0</div>
+            </div>
+
+            <button id="restartBtn" onclick="startGame()" type="button" class="btn-white text-lg sm:text-xl font-bold px-8 py-2.5 sm:py-3 w-full text-slate-900 hover:scale-105 transition cursor-pointer">
+                <i class="fa-solid fa-rotate-right mr-1"></i> 다시 도전하기
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Planet Science & Physics Data Definition
+        const PLANETS = [
+            {
+                name: "수성",
+                radius: 16,
+                color: "#a1a1a1",
+                score: 2,
+                badge: "태양과 제일 가까움",
+                fact: "수성은 태양에서 가장 가깝고 낮에는 약 400℃까지 올라가지만, 밤에는 영하 170℃까지 떨어져 온도 차가 엄청나요!"
+            },
+            {
+                name: "금성",
+                radius: 24,
+                color: "#e6b800",
+                score: 4,
+                badge: "가장 뜨거운 행성",
+                fact: "금성은 두꺼운 이산화탄소 대기가 열을 가두어 온실효과 때문에 태양계에서 가장 뜨거운 행성(약 460℃)이에요!"
+            },
+            {
+                name: "지구",
+                radius: 32,
+                color: "#2b78e4",
+                score: 8,
+                badge: "우리의 아름다운 집",
+                fact: "지구는 액체 상태의 물과 공기가 풍부하여 생명체가 살 수 있는 태양계 유일한 행성입니다!"
+            },
+            {
+                name: "화성",
+                radius: 40,
+                color: "#e0533c",
+                score: 16,
+                badge: "붉은 행성",
+                fact: "화성 표면에는 철분이 많아 붉게 보여요! 태양계에서 가장 높은 거대 화산인 '올림포스 산'도 있습니다."
+            },
+            {
+                name: "목성",
+                radius: 52,
+                color: "#d99a5b",
+                score: 32,
+                badge: "행성들의 왕",
+                fact: "목성은 태양계에서 가장 가로지름이 큰 거대 가스 행성이에요! 커다란 붉은 소용돌이인 '대붉은점'이 유명해요."
+            },
+            {
+                name: "토성",
+                radius: 66,
+                color: "#f0c36d",
+                score: 64,
+                badge: "고리의 여왕",
+                fact: "토성은 얼음과 먼지 자갈로 이루어진 거대하고 아름다운 고리를 갖고 있어요. 밀도가 물보다 낮아 욕조에 띄우면 뜬답니다!"
+            },
+            {
+                name: "천왕성",
+                radius: 80,
+                color: "#6bd3d9",
+                score: 128,
+                badge: "옆으로 누운 행성",
+                fact: "천왕성은 자전축이 약 98도 기울어져 있어 마치 옆으로 공처럼 굴러가며 태양 주변을 공전해요!"
+            },
+            {
+                name: "해왕성",
+                radius: 95,
+                color: "#3852d8",
+                score: 1000,
+                badge: "바람의 푸른 거인",
+                fact: "축하합니다! 해왕성이 완성되어 1000점을 얻었습니다! 해왕성은 태양계 가장 바깥쪽 행성으로 거센 바람이 부는 얼음 거인이에요!"
+            }
+        ];
+
+        // Game Engine Variables
+        let engine, world;
+        let canvas, ctx;
+        let bgCanvas, bgCtx;
+        let stars = [];
+        let constellations = [];
+
+        // Game Play State
+        let score = 0;
+        let lives = 5;
+        let isGameOver = false;
+        let isGameStarted = false;
+        let currentPlanetIndex = 0;
+        let nextPlanetIndex = 0;
+        let clawX = 200; // Relative x coordinate inside glass container
+        let clawY = 45;  // Top claw height
+        let containerWidth = 360;
+        let containerHeight = 500;
+        let canDrop = true;
+        let dropCooldown = 600; // ms
+        let dangerTimer = 0;
+        let shuffleCooldown = false;
+
+        // Key controls tracking
+        const keys = {};
+
+        // DOM Elements
+        const scoreText = document.getElementById('scoreText');
+        const heartContainer = document.getElementById('heartContainer');
+        const nextPlanetPreview = document.getElementById('nextPlanetPreview');
+        const nextPlanetName = document.getElementById('nextPlanetName');
+        const planetLegend = document.getElementById('planetLegend');
+        const startModal = document.getElementById('startModal');
+        const startBtn = document.getElementById('startBtn');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const restartBtn = document.getElementById('restartBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const factCard = document.getElementById('factCard');
+        const factContent = document.getElementById('factContent');
+        const toggleFactBtn = document.getElementById('toggleFactBtn');
+        const toggleFactIcon = document.getElementById('toggleFactIcon');
+        const toggleFactText = document.getElementById('toggleFactText');
+        const factBadge = document.getElementById('factBadge');
+        const factPlanetTitle = document.getElementById('factPlanetTitle');
+        const factDescription = document.getElementById('factDescription');
+
+        function initPhysics() {
+            const { Engine, World, Bodies, Events } = Matter;
+
+            engine = Engine.create({
+                gravity: { x: 0, y: 1.2 }
+            });
+            world = engine.world;
+
+            // Setup boundary walls for the glass container
+            updateContainerBounds();
+
+            // Handle Collisions for Merging logic
+            Events.on(engine, 'collisionStart', (event) => {
+                const pairs = event.pairs;
+
+                for (let i = 0; i < pairs.length; i++) {
+                    const { bodyA, bodyB } = pairs[i];
+
+                    // Verify if both bodies are valid planet bodies with level property
+                    if (bodyA.planetIndex !== undefined && bodyB.planetIndex !== undefined) {
+                        if (bodyA.planetIndex === bodyB.planetIndex && !bodyA.isMerging && !bodyB.isMerging) {
+                            // Mark to avoid multi-merging in single frame
+                            bodyA.isMerging = true;
+                            bodyB.isMerging = true;
+
+                            const idx = bodyA.planetIndex;
+                            const midX = (bodyA.position.x + bodyB.position.x) / 2;
+                            const midY = (bodyA.position.y + bodyB.position.y) / 2;
+
+                            // Handle merge delay to clean up physics engine safely
+                            setTimeout(() => {
+                                Matter.Composite.remove(world, bodyA);
+                                Matter.Composite.remove(world, bodyB);
+
+                                if (idx >= PLANETS.length - 2) {
+                                    // 천왕성 2개가 합쳐져 해왕성이 되는 순간 (또는 해왕성 충돌 시)
+                                    // 해왕성 몸체는 남지 않고 팡! 사라지며 1000점 보너스를 획득합니다!
+                                    addScore(1000);
+                                    showTrivia(PLANETS[PLANETS.length - 1]);
+                                    createExplosionParticles(midX, midY, PLANETS[PLANETS.length - 1].color);
+                                } else {
+                                    // Upgrade to Next Planet
+                                    const nextIdx = idx + 1;
+                                    spawnMergedPlanet(midX, midY, nextIdx);
+                                    addScore(PLANETS[nextIdx].score);
+                                    showTrivia(PLANETS[nextIdx]);
+                                }
+                            }, 15);
+                        }
+                    }
+                }
+            });
+        }
+
+        let wallLeft, wallRight, wallBottom;
+
+        function updateContainerBounds() {
+            const { Bodies, Composite } = Matter;
+
+            if (wallLeft) Composite.remove(world, wallLeft);
+            if (wallRight) Composite.remove(world, wallRight);
+            if (wallBottom) Composite.remove(world, wallBottom);
+
+            const wallThickness = 60;
+
+            wallLeft = Bodies.rectangle(-wallThickness/2, containerHeight/2, wallThickness, containerHeight * 2, {
+                isStatic: true,
+                friction: 0.3,
+                restitution: 0.2
+            });
+
+            wallRight = Bodies.rectangle(containerWidth + wallThickness/2, containerHeight/2, wallThickness, containerHeight * 2, {
+                isStatic: true,
+                friction: 0.3,
+                restitution: 0.2
+            });
+
+            wallBottom = Bodies.rectangle(containerWidth/2, containerHeight + wallThickness/2, containerWidth * 2, wallThickness, {
+                isStatic: true,
+                friction: 0.5,
+                restitution: 0.2
+            });
+
+            Composite.add(world, [wallLeft, wallRight, wallBottom]);
+        }
+
+        function spawnMergedPlanet(x, y, planetIndex) {
+            const { Bodies, Composite } = Matter;
+            const p = PLANETS[planetIndex];
+
+            // Constrain spawn within walls
+            const safeX = Math.max(p.radius + 5, Math.min(containerWidth - p.radius - 5, x));
+
+            const planetBody = Bodies.circle(safeX, y, p.radius, {
+                restitution: 0.25,
+                friction: 0.4,
+                density: 0.002
+            });
+
+            planetBody.planetIndex = planetIndex;
+            Composite.add(world, planetBody);
+
+            createMergeSparkles(safeX, y, p.color);
+        }
+
+        function dropCurrentPlanet() {
+            if (!canDrop || isGameOver || !isGameStarted) return;
+
+            canDrop = false;
+            const { Bodies, Composite } = Matter;
+            const p = PLANETS[currentPlanetIndex];
+
+            const spawnX = Math.max(p.radius + 10, Math.min(containerWidth - p.radius - 10, clawX));
+            const spawnY = clawY + 20;
+
+            const planetBody = Bodies.circle(spawnX, spawnY, p.radius, {
+                restitution: 0.25,
+                friction: 0.4,
+                density: 0.002
+            });
+
+            planetBody.planetIndex = currentPlanetIndex;
+            Composite.add(world, planetBody);
+
+            // Queue Next Planet
+            currentPlanetIndex = nextPlanetIndex;
+            nextPlanetIndex = Math.floor(Math.random() * 4); // Only drop starting 4 planets (Mercury to Mars)
+            updateNextPreview();
+
+            setTimeout(() => {
+                canDrop = true;
+            }, dropCooldown);
+        }
+
+        function initBackgroundStars() {
+            bgCanvas = document.getElementById('bgCanvas');
+            bgCtx = bgCanvas.getContext('2d');
+
+            resizeBgCanvas();
+            window.addEventListener('resize', resizeBgCanvas);
+
+            // Generate Stars
+            stars = [];
+            for (let i = 0; i < 120; i++) {
+                stars.push({
+                    x: Math.random() * bgCanvas.width,
+                    y: Math.random() * bgCanvas.height,
+                    radius: Math.random() * 1.8 + 0.5,
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.02 + 0.005
+                });
+            }
+
+            // Simple Constellation shapes
+            constellations = [
+                // Big Dipper outline relative coordinates
+                { name: "큰곰자리 (북두칠성)", points: [[0.1, 0.2], [0.15, 0.22], [0.2, 0.21], [0.24, 0.26], [0.23, 0.33], [0.3, 0.35], [0.31, 0.27], [0.24, 0.26]] },
+                // Cassiopeia W shape
+                { name: "카시오페아자리", points: [[0.75, 0.15], [0.8, 0.12], [0.84, 0.16], [0.88, 0.11], [0.92, 0.14]] }
+            ];
+        }
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+
+        function drawBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            // Draw twinkling stars
+            for (let s of stars) {
+                s.alpha += s.speed;
+                if (s.alpha > 1 || s.alpha < 0.2) s.speed = -s.speed;
+
+                bgCtx.beginPath();
+                bgCtx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                bgCtx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, s.alpha)})`;
+                bgCtx.fill();
+            }
+
+            // Draw Constellations
+            bgCtx.strokeStyle = "rgba(147, 197, 253, 0.25)";
+            bgCtx.lineWidth = 1;
+
+            for (let c of constellations) {
+                bgCtx.beginPath();
+                for (let i = 0; i < c.points.length; i++) {
+                    const px = c.points[i][0] * bgCanvas.width;
+                    const py = c.points[i][1] * bgCanvas.height;
+                    if (i === 0) bgCtx.moveTo(px, py);
+                    else bgCtx.lineTo(px, py);
+
+                    // Draw star node
+                    bgCtx.fillStyle = "rgba(253, 224, 71, 0.6)";
+                    bgCtx.fillRect(px - 2, py - 2, 4, 4);
+                }
+                bgCtx.stroke();
+            }
+        }
+
+        function drawPlanetArtwork(ctx, x, y, planetIndex, scale = 1) {
+            const p = PLANETS[planetIndex];
+            const r = p.radius * scale;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Base Body Shadow & Gradient
+            const grad = ctx.createRadialGradient(-r*0.3, -r*0.3, r*0.1, 0, 0, r);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.3, p.color);
+            grad.addColorStop(1, adjustColor(p.color, -50));
+
+            // Saturn Special Rings (Behind)
+            if (planetIndex === 5) {
+                ctx.save();
+                ctx.scale(1, 0.35);
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(240, 195, 109, 0.85)";
+                ctx.lineWidth = r * 0.4;
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Planet Spherical Body
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.lineWidth = 1.5 * scale;
+            ctx.stroke();
+
+            // Detailed Surface Features per planet
+            ctx.clip(); // Clip pattern within planet circle
+
+            if (planetIndex === 0) { // Mercury: Craters
+                ctx.fillStyle = "rgba(0,0,0,0.15)";
+                ctx.beginPath();
+                ctx.arc(-r*0.3, r*0.2, r*0.25, 0, Math.PI*2);
+                ctx.arc(r*0.3, -r*0.2, r*0.2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 1) { // Venus: Thick Swirls
+                ctx.fillStyle = "rgba(255,255,255,0.2)";
+                ctx.beginPath();
+                ctx.ellipse(0, -r*0.2, r*0.8, r*0.2, 0.2, 0, Math.PI*2);
+                ctx.ellipse(0, r*0.3, r*0.7, r * 0.15, -0.2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 2) { // Earth: Oceans & Continents
+                ctx.fillStyle = "#38a169"; // Green continents
+                ctx.beginPath();
+                ctx.arc(-r*0.2, -r*0.2, r*0.45, 0, Math.PI*2);
+                ctx.arc(r*0.3, r*0.3, r*0.35, 0, Math.PI*2);
+                ctx.fill();
+                // Clouds
+                ctx.fillStyle = "rgba(255,255,255,0.6)";
+                ctx.beginPath();
+                ctx.arc(0, -r*0.5, r*0.3, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 3) { // Mars: Red Surface & Polar Ice Cap
+                ctx.fillStyle = "rgba(255,255,255,0.85)"; // North Ice cap
+                ctx.beginPath();
+                ctx.arc(0, -r*0.8, r*0.3, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 4) { // Jupiter: Stripes & Great Red Spot
+                ctx.fillStyle = "rgba(120,53,15,0.3)";
+                ctx.fillRect(-r, -r*0.4, r*2, r*0.25);
+                ctx.fillRect(-r, r*0.2, r*2, r*0.25);
+                // Great Red Spot
+                ctx.fillStyle = "#dc2626";
+                ctx.beginPath();
+                ctx.ellipse(r*0.3, r*0.3, r*0.25, r*0.18, 0, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 6) { // Uranus: Ice blue aura
+                ctx.fillStyle = "rgba(255,255,255,0.25)";
+                ctx.beginPath();
+                ctx.arc(-r*0.3, -r*0.3, r*0.5, 0, Math.PI*2);
+                ctx.fill();
+            } else if (planetIndex === 7) { // Neptune: Dark Spot & Deep Blue
+                ctx.fillStyle = "rgba(15, 23, 42, 0.4)";
+                ctx.beginPath();
+                ctx.ellipse(-r*0.2, 0, r*0.3, r*0.2, 0.3, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Cute Face Overlay for 4th Graders
+            ctx.fillStyle = "#1e293b";
+            ctx.beginPath();
+            // Eyes
+            ctx.arc(-r*0.25, -r*0.1, Math.max(1.5, r*0.08), 0, Math.PI*2);
+            ctx.arc(r*0.25, -r*0.1, Math.max(1.5, r*0.08), 0, Math.PI*2);
+            ctx.fill();
+            // Smile
+            ctx.beginPath();
+            ctx.arc(0, 0, r*0.2, 0.1*Math.PI, 0.9*Math.PI);
+            ctx.lineWidth = Math.max(1, scale * 1.5);
+            ctx.strokeStyle = "#1e293b";
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Helper function to darken/lighten hex colors
+        function adjustColor(hex, amount) {
+            let color = hex.replace('#', '');
+            let num = parseInt(color, 16);
+            let r = Math.min(255, Math.max(0, (num >> 16) + amount));
+            let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+            let b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+            return `#${(g | (b << 8) | (r << 16)).toString(16).padStart(6, '0')}`;
+        }
+
+        function drawClaw(ctx) {
+            ctx.save();
+            ctx.translate(clawX, clawY);
+
+            // Claw Top Rigging Line
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, -clawY);
+            ctx.lineTo(0, -10);
+            ctx.stroke();
+
+            // Grey Claw Holder Body
+            ctx.fillStyle = "#64748b"; // Grey color
+            ctx.beginPath();
+            ctx.arc(0, -10, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#334155";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Left & Right Claw Arms
+            ctx.strokeStyle = "#475569"; // Grey metal arms
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+
+            // Left Arm
+            ctx.beginPath();
+            ctx.moveTo(-8, -5);
+            ctx.quadraticCurveTo(-22, 10, -12, 28);
+            ctx.stroke();
+
+            // Right Arm
+            ctx.beginPath();
+            ctx.moveTo(8, -5);
+            ctx.quadraticCurveTo(22, 10, 12, 28);
+            ctx.stroke();
+
+            ctx.restore();
+
+            // Draw Ready Dropping Planet inside Claw
+            if (canDrop && !isGameOver && isGameStarted) {
+                drawPlanetArtwork(ctx, clawX, clawY + 20, currentPlanetIndex);
+            }
+        }
+
+        let particles = [];
+
+        function renderLoop() {
+            // Safely Update Matter Physics
+            if (engine && typeof Matter !== 'undefined') {
+                Matter.Engine.update(engine, 1000 / 60);
+            }
+
+            // Draw Background Stars
+            drawBackground();
+
+            // Clear Game Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Smooth Keyboard Controls for Claw
+            if (isGameStarted && !isGameOver) {
+                const moveSpeed = 5;
+                if (keys['ArrowLeft'] || keys['KeyA']) {
+                    clawX = Math.max(PLANETS[currentPlanetIndex].radius + 10, clawX - moveSpeed);
+                }
+                if (keys['ArrowRight'] || keys['KeyD']) {
+                    clawX = Math.min(containerWidth - PLANETS[currentPlanetIndex].radius - 10, clawX + moveSpeed);
+                }
+            }
+
+            // Draw Physics Bodies (Planets in Vessel)
+            const bodies = Matter.Composite.allBodies(world);
+            let heightLimitExceeded = false;
+            const dangerY = containerHeight * 0.2; // 80% full from bottom = top 20% threshold
+
+            for (let b of bodies) {
+                if (b.planetIndex !== undefined) {
+                    drawPlanetArtwork(ctx, b.position.x, b.position.y, b.planetIndex);
+
+                    // Danger line check (center or top of planet crosses line)
+                    if (b.position.y - PLANETS[b.planetIndex].radius < dangerY) {
+                        heightLimitExceeded = true;
+                    }
+                }
+            }
+
+            // Danger Timer Handling for Life Loss
+            if (heightLimitExceeded && isGameStarted && !isGameOver) {
+                dangerTimer += 1 / 60;
+                if (dangerTimer > 2.0) { // 2 Seconds in danger zone
+                    loseLife();
+                    dangerTimer = 0;
+                }
+            } else {
+                dangerTimer = Math.max(0, dangerTimer - 1/60);
+            }
+
+            // Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.02;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+
+            // Draw Claw Assembly
+            drawClaw(ctx);
+
+            requestAnimationFrame(renderLoop);
+        }
+
+        function createMergeSparkles(x, y, color) {
+            for (let i = 0; i < 15; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 3 + 2,
+                    color: color,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function createExplosionParticles(x, y, color) {
+            for (let i = 0; i < 35; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 7 + 2;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 5 + 3,
+                    color: i % 2 === 0 ? "#fde047" : color,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function addScore(pts) {
+            score += pts;
+            scoreText.textContent = score;
+        }
+
+        function loseLife() {
+            if (lives <= 0) return;
+            lives--;
+            updateHeartUI();
+
+            // Flash container red alert
+            const wrapper = document.getElementById('containerWrapper');
+            wrapper.classList.add('border-red-500', 'bg-red-500/20');
+            setTimeout(() => {
+                wrapper.classList.remove('border-red-500', 'bg-red-500/20');
+            }, 600);
+
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+
+        function updateHeartUI() {
+            const heartIcons = heartContainer.querySelectorAll('i');
+            heartIcons.forEach((icon, index) => {
+                if (index < lives) {
+                    icon.className = "fa-solid fa-heart text-pink-500 transition-colors duration-300";
+                } else {
+                    icon.className = "fa-solid fa-heart text-slate-600 transition-colors duration-300"; // Grey out
+                }
+            });
+        }
+
+        function showTrivia(planet) {
+            factBadge.textContent = planet.badge;
+            factPlanetTitle.textContent = `${planet.name} 발견!`;
+            factDescription.textContent = planet.fact;
+
+            // Flash card to notify player
+            factCard.classList.add('ring-2', 'ring-yellow-400');
+            setTimeout(() => factCard.classList.remove('ring-2', 'ring-yellow-400'), 1000);
+        }
+
+        function updateNextPreview() {
+            nextPlanetPreview.innerHTML = '';
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = 70;
+            previewCanvas.height = 70;
+            const pCtx = previewCanvas.getContext('2d');
+
+            drawPlanetArtwork(pCtx, 35, 35, nextPlanetIndex, 0.7);
+            nextPlanetPreview.appendChild(previewCanvas);
+            nextPlanetName.textContent = PLANETS[nextPlanetIndex].name;
+        }
+
+        function populateLegend() {
+            planetLegend.innerHTML = '';
+            PLANETS.forEach((p, idx) => {
+                const item = document.createElement('div');
+                item.className = "flex items-center space-x-1.5 bg-slate-800/60 p-1 rounded-lg border border-slate-700/60";
+                item.innerHTML = `
+                    <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: ${p.color}"></div>
+                    <span class="text-[11px] font-bold text-slate-200 truncate">${idx+1}.${p.name}</span>
+                `;
+                planetLegend.appendChild(item);
+            });
+        }
+
+        function handleResize() {
+            const gameArea = document.getElementById('gameArea');
+            if (!gameArea) return;
+            const rect = gameArea.getBoundingClientRect();
+
+            containerWidth = rect.width;
+            containerHeight = rect.height;
+
+            if (canvas) {
+                canvas.width = containerWidth;
+                canvas.height = containerHeight;
+            }
+
+            if (engine) {
+                updateContainerBounds();
+            }
+
+            // Adjust claw bounds
+            clawX = Math.max(30, Math.min(containerWidth - 30, clawX));
+        }
+
+        function initControls() {
+            // Keyboard Key Down
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+
+                if (e.code === 'Space' || e.code === 'ArrowDown') {
+                    e.preventDefault();
+                    dropCurrentPlanet();
+                }
+            });
+
+            // Keyboard Key Up
+            window.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+
+            // Universal Pointer position calculator
+            const getRelativeX = (clientX) => {
+                const rect = canvas.getBoundingClientRect();
+                return clientX - rect.left;
+            };
+
+            const updateClawPos = (clientX) => {
+                if (!isGameStarted || isGameOver) return;
+                const relativeX = getRelativeX(clientX);
+                const p = PLANETS[currentPlanetIndex];
+                clawX = Math.max(p.radius + 10, Math.min(containerWidth - p.radius - 10, relativeX));
+            };
+
+            // Mouse Events
+            canvas.addEventListener('mousemove', (e) => {
+                updateClawPos(e.clientX);
+            });
+
+            canvas.addEventListener('click', (e) => {
+                updateClawPos(e.clientX);
+                dropCurrentPlanet();
+            });
+
+            // Touch Events (Enhanced for mobile precision & prevention of scroll/zoom)
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    e.preventDefault();
+                    updateClawPos(e.touches[0].clientX);
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    e.preventDefault();
+                    updateClawPos(e.touches[0].clientX);
+                }
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                dropCurrentPlanet();
+            }, { passive: false });
+
+            // Shuffle Button Handler
+            shuffleBtn.addEventListener('click', () => {
+                if (shuffleCooldown || isGameOver || !isGameStarted) return;
+
+                shuffleCooldown = true;
+                shuffleBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                const bodies = Matter.Composite.allBodies(world);
+                bodies.forEach(b => {
+                    if (b.planetIndex !== undefined) {
+                        Matter.Body.applyImpulse(b, b.position, {
+                            x: (Math.random() - 0.5) * 0.05,
+                            y: -Math.random() * 0.08
+                        });
+                    }
+                });
+
+                // Particle effect for shuffle
+                createExplosionParticles(containerWidth / 2, containerHeight / 2, "#818cf8");
+
+                setTimeout(() => {
+                    shuffleCooldown = false;
+                    shuffleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }, 8000); // 8 second cooldown
+            });
+
+            // Fullscreen Toggle
+            fullscreenBtn.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {});
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+
+            // Collapsible Trivia Box Handler
+            let isFactFolded = false;
+            toggleFactBtn.addEventListener('click', () => {
+                isFactFolded = !isFactFolded;
+                if (isFactFolded) {
+                    factContent.classList.add('hidden');
+                    toggleFactIcon.className = "fa-solid fa-chevron-down";
+                    toggleFactText.textContent = "펼치기";
+                } else {
+                    factContent.classList.remove('hidden');
+                    toggleFactIcon.className = "fa-solid fa-chevron-up";
+                    toggleFactText.textContent = "접기";
+                }
+            });
+        }
+
+        function startGame() {
+            try {
+                // Force hide modals immediately first
+                const sModal = document.getElementById('startModal');
+                if (sModal) {
+                    sModal.style.display = 'none';
+                    sModal.classList.add('hidden');
+                }
+                const gModal = document.getElementById('gameOverModal');
+                if (gModal) {
+                    gModal.style.display = 'none';
+                    gModal.classList.add('hidden');
+                }
+
+                if (!engine && typeof Matter !== 'undefined') {
+                    initPhysics();
+                }
+
+                isGameStarted = true;
+                isGameOver = false;
+                score = 0;
+                lives = 5;
+                if (scoreText) scoreText.textContent = '0';
+                updateHeartUI();
+
+                // Clear Physics Composite bodies
+                if (world && typeof Matter !== 'undefined') {
+                    const bodies = Matter.Composite.allBodies(world);
+                    bodies.forEach(b => {
+                        if (b.planetIndex !== undefined) {
+                            Matter.Composite.remove(world, b);
+                        }
+                    });
+                }
+
+                currentPlanetIndex = Math.floor(Math.random() * 3);
+                nextPlanetIndex = Math.floor(Math.random() * 3);
+                updateNextPreview();
+                handleResize();
+            } catch (err) {
+                console.error("Game start handler error:", err);
+            }
+        }
+
+        function endGame() {
+            isGameOver = true;
+            const finalScore = document.getElementById('finalScoreText');
+            if (finalScore) finalScore.textContent = score;
+            const gModal = document.getElementById('gameOverModal');
+            if (gModal) {
+                gModal.style.display = 'flex';
+                gModal.classList.remove('hidden');
+            }
+        }
+
+        function initApp() {
+            canvas = document.getElementById('gameCanvas');
+            if (canvas) ctx = canvas.getContext('2d');
+
+            if (typeof Matter !== 'undefined') {
+                initPhysics();
+            }
+            initBackgroundStars();
+            handleResize();
+            populateLegend();
+            initControls();
+
+            window.addEventListener('resize', handleResize);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(handleResize, 200);
+            });
+
+            // Additional event bindings for maximum compatibility across browsers
+            if (startBtn) {
+                startBtn.addEventListener('click', startGame);
+                startBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    startGame();
+                });
+            }
+            if (restartBtn) {
+                restartBtn.addEventListener('click', startGame);
+            }
+
+            // Start animation & physics loop
+            renderLoop();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            initApp();
+        }
+    </script>
+</body>
+</html>

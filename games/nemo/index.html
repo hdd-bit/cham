@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full bg-slate-950 text-white select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>파이어 투더 플래닛 (Fire to the Planet)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+KR:wght@400;600;800&display=swap');
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      overscroll-behavior: none;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(249, 115, 22, 0.5);
+      border-radius: 4px;
+    }
+
+    .fuel-card {
+      cursor: grab;
+      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.15s ease;
+      touch-action: none;
+    }
+    .fuel-card:hover {
+      transform: translateY(-2px);
+    }
+    .fuel-card:active {
+      cursor: grabbing;
+      transform: scale(0.96);
+    }
+
+    .float-num {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUp 1.2s ease-out forwards;
+      font-weight: 800;
+      font-family: 'Orbitron', sans-serif;
+      z-index: 40;
+    }
+
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-60px) scale(1.3);
+      }
+    }
+
+    .tab-btn.active {
+      background-color: rgba(249, 115, 22, 0.2);
+      border-color: rgba(249, 115, 22, 0.8);
+      color: #fbbf24;
+    }
+
+    /* Touch Drag Ghost Element */
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 100;
+      transform: translate(-50%, -50%) scale(1.05);
+      opacity: 0.9;
+      box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.5);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-black text-slate-100">
+
+  <!-- Header Navigation -->
+  <header class="h-14 sm:h-16 border-b border-slate-800 bg-slate-950/90 backdrop-blur px-3 sm:px-4 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-red-600 via-orange-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
+        <i class="fa-solid fa-fire text-base sm:text-xl text-white animate-pulse"></i>
+      </div>
+      <div>
+        <h1 class="text-sm sm:text-lg md:text-xl font-black font-orbitron tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200 leading-tight">
+          FIRE TO THE PLANET
+        </h1>
+        <p class="text-[10px] sm:text-xs text-slate-400 font-medium hidden md:block">불이 꺼지지 않게 지키며 해왕성을 넘어 우주의 끝까지 화력을 전달하라!</p>
+      </div>
+    </div>
+
+    <!-- Header Stats & Actions -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <div class="hidden md:flex items-center gap-3 bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-xl">
+        <div class="flex items-center gap-1.5 text-xs">
+          <i class="fa-solid fa-ruler-horizontal text-sky-400"></i>
+          <span class="text-slate-400">누적 거리:</span>
+          <span id="header-distance-display" class="font-bold font-orbitron text-sky-300">0 m</span>
+        </div>
+        <div class="w-px h-4 bg-slate-700"></div>
+        <div class="flex items-center gap-1.5 text-xs">
+          <i class="fa-solid fa-coins text-yellow-400"></i>
+          <span class="text-slate-400">보유 자금:</span>
+          <span id="header-money-display" class="font-bold font-orbitron text-amber-300">0.0 원</span>
+        </div>
+      </div>
+
+      <button id="btn-upgrade-tree" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white transition flex items-center gap-1.5 text-xs font-bold border border-emerald-400 shadow-md animate-pulse">
+        <i class="fa-solid fa-sitemap text-amber-300"></i>
+        <span>연구 트리</span>
+      </button>
+      <button id="btn-sound" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold border border-slate-700">
+        <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+        <span class="hidden lg:inline">사운드</span>
+      </button>
+      <button id="btn-help" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-semibold border border-slate-700">
+        <i class="fa-solid fa-circle-question text-sky-400"></i>
+        <span class="hidden sm:inline">게임 방법</span>
+      </button>
+      <button id="btn-fullscreen" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-orange-600/80 hover:bg-orange-500 text-white transition flex items-center gap-1.5 text-xs font-bold border border-orange-500 shadow-md">
+        <i class="fa-solid fa-expand"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport Layout -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden relative">
+
+    <!-- Interactive Canvas Viewport -->
+    <section id="game-viewport" class="lg:col-span-7 flex flex-col relative h-[50vh] sm:h-[55vh] lg:h-full border-b lg:border-b-0 lg:border-r border-slate-800 overflow-hidden touch-none">
+      
+      <!-- Planet Stage HUD -->
+      <div class="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 z-10 flex flex-col gap-1.5 sm:gap-2 pointer-events-none">
+        <div class="flex justify-between items-center bg-slate-900/85 backdrop-blur border border-slate-700/80 rounded-xl sm:rounded-2xl p-2.5 sm:p-3 shadow-2xl pointer-events-auto">
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div id="planet-badge" class="w-9 h-9 sm:w-12 sm:h-12 rounded-full border-2 border-orange-400/80 flex items-center justify-center text-lg sm:text-2xl shadow-lg bg-slate-800 shrink-0">
+              🪨
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <span id="planet-name" class="font-bold text-sm sm:text-lg text-orange-300">수성 (Mercury)</span>
+                <span id="planet-stage-tag" class="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/40">STAGE 1/16</span>
+              </div>
+              <p id="planet-desc" class="text-[10px] sm:text-xs text-slate-400 line-clamp-1">크레이터 지형. 100 Heat 달성 시 관문 도전!</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-[10px] sm:text-xs text-slate-400 font-medium">현재 화력</div>
+            <div id="heat-display" class="font-orbitron font-bold text-amber-400 text-sm sm:text-lg md:text-xl">30 / 100 Heat</div>
+            <div class="text-[10px] sm:text-xs font-bold text-emerald-400 mt-0.5"><i class="fa-solid fa-coins mr-1"></i><span id="hud-money-display">0.0</span> 원 (10m = 1원)</div>
+          </div>
+        </div>
+
+        <!-- Planet Progress Bar -->
+        <div class="w-full bg-slate-900/90 rounded-full h-3.5 sm:h-4 border border-slate-700 overflow-hidden relative shadow-inner p-0.5 pointer-events-auto">
+          <div id="planet-progress" class="bg-gradient-to-r from-orange-500 via-amber-400 to-yellow-300 h-full rounded-full transition-all duration-200 w-[30%]"></div>
+          <div class="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] font-orbitron font-bold text-white drop-shadow-md">
+            <span id="progress-text">목표 화력: 100 Heat</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Banner Notification -->
+      <div id="status-banner" class="absolute top-24 sm:top-28 left-1/2 -translate-x-1/2 z-20 transition-all duration-500 opacity-0 pointer-events-none w-11/12 max-w-md text-center">
+        <div id="status-banner-content" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 shadow-2xl backdrop-blur">
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div id="canvas-container" class="w-full h-full relative cursor-crosshair">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+        <div id="storm-flash-overlay" class="absolute inset-0 bg-sky-950/40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+        <!-- Drop Hint Overlay -->
+        <div class="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-slate-700/60 text-slate-300 text-[10px] sm:text-xs font-semibold pointer-events-none flex items-center gap-1.5 sm:gap-2 animate-bounce max-w-[90%] text-center">
+          <i class="fa-solid fa-hand-pointer text-orange-400 shrink-0"></i>
+          <span>터치/클릭 또는 재료를 드래그하여 던지세요!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fuel Rack Panel -->
+    <section class="lg:col-span-5 flex flex-col h-[50vh] sm:h-[45vh] lg:h-full bg-slate-950 overflow-hidden border-t lg:border-t-0 border-slate-800">
+      
+      <!-- Real-Time Heat & Decay Header -->
+      <div class="p-3 sm:p-4 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div>
+          <span class="text-[10px] sm:text-xs text-slate-400 font-medium">실시간 화력</span>
+          <div class="flex items-center gap-2 mt-0.5 sm:mt-1">
+            <span id="heat-value-large" class="text-2xl sm:text-3xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-200">
+              30.0
+            </span>
+            <span class="text-[10px] sm:text-xs font-bold text-orange-400">HEAT</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] sm:text-xs text-slate-400 font-medium">감쇠속도 (자연/폭우)</span>
+          <div id="decay-rate-display" class="font-orbitron font-bold text-rose-400 text-xs sm:text-sm">-1.2 Heat/초</div>
+          <div id="insurance-tag" class="text-[10px] text-emerald-400 font-bold hidden"><i class="fa-solid fa-shield-heart mr-1"></i>예비 불씨 활성</div>
+        </div>
+      </div>
+
+      <div class="px-3 sm:px-4 py-1.5 sm:py-2 bg-slate-900/30 border-b border-slate-800 text-[11px] sm:text-xs font-bold text-slate-300 flex justify-between items-center shrink-0">
+        <span><i class="fa-solid fa-box-open text-orange-400 mr-1.5"></i> 모닥불 투입 재료 선반</span>
+        <span class="text-[10px] text-amber-400 font-medium"><i class="fa-solid fa-hand-pointer mr-1"></i>터치/클릭/드래그</span>
+      </div>
+
+      <!-- Fuel Cards Container -->
+      <div id="fuels-container" class="flex-1 overflow-y-auto p-2.5 sm:p-4 space-y-2.5 sm:space-y-3">
+        <!-- Dynamically populated via JS -->
+      </div>
+
+      <!-- Climate Status Footer -->
+      <div class="p-2.5 sm:p-3 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-400 shrink-0">
+        <div class="flex items-center gap-2">
+          <span id="rain-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+          <span id="rain-status-text">기후 안정적</span>
+        </div>
+        <div>
+          <span>폭우 카운트다운: <strong id="rain-timer-text" class="text-sky-300 font-orbitron">10초 후 발생</strong></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Upgrade Tree Modal -->
+  <div id="upgrade-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-3xl w-full p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[92vh]">
+      <button id="btn-close-upgrade" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-white text-xl p-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex items-center gap-2.5 sm:gap-3 border-b border-slate-800 pb-3 mb-3 sm:pb-4 sm:mb-4">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400 text-lg sm:text-xl shrink-0">
+          <i class="fa-solid fa-sitemap"></i>
+        </div>
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white font-orbitron">우주 탐사 연구 트리</h2>
+          <p class="text-[10px] sm:text-xs text-slate-400">거리 이동으로 획득한 자금(원)을 지출하여 기술을 연구하세요.</p>
+        </div>
+        <div class="ml-auto bg-slate-800 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-slate-700 text-right shrink-0">
+          <div class="text-[9px] sm:text-[10px] text-slate-400">보유 자금</div>
+          <div id="modal-money-display" class="text-xs sm:text-base font-bold font-orbitron text-amber-300">0.0 원</div>
+        </div>
+      </div>
+
+      <!-- Upgrade Category Tabs -->
+      <div class="flex gap-1.5 sm:gap-2 mb-3 border-b border-slate-800 pb-2 overflow-x-auto">
+        <button class="tab-btn active px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap" data-tab="fuels">
+          <i class="fa-solid fa-fire mr-1 text-orange-400"></i>연료 해금 & 효율
+        </button>
+        <button class="tab-btn px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap" data-tab="automation">
+          <i class="fa-solid fa-robot mr-1 text-sky-400"></i>자동화 & 탐사
+        </button>
+        <button class="tab-btn px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap" data-tab="defense">
+          <i class="fa-solid fa-cloud-showers-heavy mr-1 text-teal-400"></i>기후 방어 & 소화 방지
+        </button>
+      </div>
+
+      <!-- Upgrade Tree Items List -->
+      <div id="upgrade-tree-list" class="flex-1 overflow-y-auto space-y-2.5 sm:space-y-3 pr-1">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal (Fire Extinguished) -->
+  <div id="gameover-fireout-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border-2 border-red-600 rounded-3xl max-w-md w-full p-5 sm:p-6 text-center space-y-4 sm:space-y-5 shadow-2xl relative">
+      <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center text-3xl sm:text-4xl text-red-500 shadow-lg animate-pulse">
+        <i class="fa-solid fa-fire-flame-curved text-slate-600"></i>
+      </div>
+      <div>
+        <h3 class="text-xl sm:text-2xl font-black text-red-500 font-orbitron">모닥불 완전 소화!</h3>
+        <p class="text-xs text-slate-300 mt-1.5 sm:mt-2 leading-relaxed">
+          화력이 0 Heat에 도달하여 모닥불이 꺼졌습니다.<br>
+          우주 탐사가 중단되었습니다.
+        </p>
+      </div>
+
+      <div class="bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 text-left space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">최종 도달 행성:</span>
+          <span id="go-planet-name" class="font-bold text-amber-300">수성</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">총 누적 이동 거리:</span>
+          <span id="go-distance" class="font-bold font-orbitron text-sky-300">0 m</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">획득한 보상 자금:</span>
+          <span id="go-money" class="font-bold font-orbitron text-amber-400">0.0 원</span>
+        </div>
+      </div>
+
+      <button id="btn-restart-game" class="w-full py-3 sm:py-3.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>다시 불씨 지피기 (재시작)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quiz Modal -->
+  <div id="quiz-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 hidden">
+    <div class="bg-slate-900 border-2 border-amber-500/80 rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative space-y-3.5 sm:space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl sm:text-2xl" id="quiz-planet-emoji">🪨</span>
+          <div>
+            <h3 id="quiz-modal-title" class="text-base sm:text-lg font-bold text-amber-300">행성 탐사 관문 퀴즈</h3>
+            <p class="text-[10px] sm:text-[11px] text-rose-400 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>3문제를 통과해야 다음 행성으로 전진합니다!</p>
+          </div>
+        </div>
+        <span id="quiz-step-indicator" class="px-2.5 sm:px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 font-orbitron text-[10px] sm:text-xs font-bold border border-amber-500/40 shrink-0">
+          문제 1 / 3
+        </span>
+      </div>
+
+      <div class="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-800/80 border border-slate-700">
+        <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider block mb-1" id="quiz-category">행성 상식 문제</span>
+        <p id="quiz-question-text" class="text-xs sm:text-sm font-bold text-white leading-relaxed">
+          질문 내용이 여기에 표시됩니다.
+        </p>
+      </div>
+
+      <div id="quiz-options-container" class="space-y-2 sm:space-y-2.5">
+        <!-- Multiple Choice Options -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="help-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4">
+      <button id="btn-close-help" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl p-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <i class="fa-solid fa-circle-info text-sky-400 text-xl"></i>
+        <h3 class="text-base sm:text-lg font-bold text-white">게임 방법 안내</h3>
+      </div>
+      <div class="text-xs text-slate-300 space-y-2.5 sm:space-y-3 leading-relaxed max-h-[60vh] overflow-y-auto pr-1">
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700">
+          <h4 class="font-bold text-amber-300 mb-1">🔥 1. 화력 투하 & 소화주의</h4>
+          <p>선반의 재료를 <strong>클릭/터치</strong>하거나 모닥불 위로 <strong>드래그</strong>하여 투하하세요. <strong>화력이 0이 되면 게임 오버</strong>됩니다!</p>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700">
+          <h4 class="font-bold text-sky-300 mb-1">💰 2. 거리 & 경제 시스템 (10m = 1원)</h4>
+          <p>화력이 높을수록 빠르게 탐사 거리가 증가합니다. <strong>10m당 1원</strong>의 자금을 얻어 연구 트리에서 기술을 해금하세요.</p>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700">
+          <h4 class="font-bold text-teal-300 mb-1">🌧️ 3. 폭우 기후 이벤트</h4>
+          <p>카운트다운 후 폭우가 쏟아집니다. 폭우 시 화력이 급감하므로 <strong>방수 천막</strong> 업그레이드로 차단하세요!</p>
+        </div>
+        <div class="p-3 bg-slate-800/60 rounded-xl border border-slate-700">
+          <h4 class="font-bold text-purple-300 mb-1">☄️ 4. 혜성 피버 & 관문 퀴즈</h4>
+          <p>하늘을 지나가는 혜성을 클릭/터치하면 화력 감쇠가 정지하는 <strong>피버 타임</strong>이 시작됩니다! 목표 화력 달성 시 퀴즈 관문을 풀 수 있습니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Global Game State */
+    const state = {
+      heat: 30,
+      targetHeat: 100,
+      currentPlanetIdx: 0,
+      distance: 0,
+      money: 0,
+      rainActive: false,
+      rainTimer: 10,
+      rainDuration: 5,
+      feverActive: false,
+      feverTimer: 0,
+      isQuizActive: false,
+      quizStep: 0,
+      upgrades: {},
+      unlockedFuels: {
+        leaf: true,
+        pinecone: false,
+        twig: false,
+        log: false,
+        coal: false,
+        gasoline: false
+      },
+      cooldowns: {},
+      soundEnabled: true
+    };
+
+    let autoThrowTimer = 0;
+    let fallingFuels = [];
+    let comets = [];
+    let fireworks = [];
+    let rainParticles = [];
+    let emberParticles = [];
+    let activeTab = 'fuels';
+
+    /* Audio Sound Synthesizer via Web Audio API */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+      playPop() {
+        if (!state.soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.08);
+          gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.08);
+        } catch (e) {}
+      }
+      playSizzle() {
+        if (!state.soundEnabled) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const bufferSize = this.ctx.sampleRate * 0.15;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 1200;
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start();
+        } catch (e) {}
+      }
+    }
+    const sound = new SoundEngine();
+
+    // Mobile web audio unlock listener
+    window.addEventListener('touchstart', () => sound.init(), { once: true });
+    window.addEventListener('click', () => sound.init(), { once: true });
+
+    /* Planet & Deep Space Stage Data Definitions (16 Stages) */
+    const PLANETS = [
+      { id: 0, name: '수성 (Mercury)', tag: 'STAGE 1/16', emoji: '🪨', desc: '태양과 가장 가까운 운석 구덩이 행성', flameColor: '#f97316', planetColor: '#94a3b8', heatGoal: 250 },
+      { id: 1, name: '금성 (Venus)', tag: 'STAGE 2/16', emoji: '🟡', desc: '황산 소용돌이와 두꺼운 이산화탄소 대기', flameColor: '#eab308', planetColor: '#fde047', heatGoal: 500 },
+      { id: 2, name: '지구 (Earth)', tag: 'STAGE 3/16', emoji: '🌍', desc: '생명체가 살고 있는 푸른 대양과 오존층', flameColor: '#38bdf8', planetColor: '#0284c7', heatGoal: 800 },
+      { id: 3, name: '화성 (Mars)', tag: 'STAGE 4/16', emoji: '🔴', desc: '붉은 사막 먼지와 유황 가스 가득한 표면', flameColor: '#ef4444', planetColor: '#dc2626', heatGoal: 1200 },
+      { id: 4, name: '목성 (Jupiter)', tag: 'STAGE 5/16', emoji: '🟠', desc: '거대한 가스 띠와 폭풍 대적점', flameColor: '#fb923c', planetColor: '#d97706', heatGoal: 1800 },
+      { id: 5, name: '토성 (Saturn)', tag: 'STAGE 6/16', emoji: '🪐', desc: '화려한 얼음 입자 3D 고리를 가진 행성', flameColor: '#facc15', planetColor: '#eab308', heatGoal: 2500 },
+      { id: 6, name: '천왕성 (Uranus)', tag: 'STAGE 7/16', emoji: '💎', desc: '기울어진 축과 얼음 메탄 대기', flameColor: '#2dd4bf', planetColor: '#14b8a6', heatGoal: 3500 },
+      { id: 7, name: '해왕성 (Neptune)', tag: 'STAGE 8/16', emoji: '🔵', desc: '최외곽 코스믹 블루 얼음 가스 대기', flameColor: '#6366f1', planetColor: '#3b82f6', heatGoal: 5000 },
+      { id: 8, name: '명왕성 (Pluto)', tag: 'STAGE 9/16', emoji: '❄️', desc: '얼음과 질소 만년설로 덮인 왜소행성', flameColor: '#a5f3fc', planetColor: '#cbd5e1', heatGoal: 7000 },
+      { id: 9, name: '카이퍼 벨트 (Kuiper Belt)', tag: 'STAGE 10/16', emoji: '☄️', desc: '태양계 외곽의 얼음 소천체 혜성 집단', flameColor: '#c084fc', planetColor: '#a855f7', heatGoal: 10000 },
+      { id: 10, name: '오르트 구름 (Oort Cloud)', tag: 'STAGE 11/16', emoji: '☁️', desc: '태양계를 거대하게 둘러싼 원시 혜성 구름', flameColor: '#e879f9', planetColor: '#d946ef', heatGoal: 14000 },
+      { id: 11, name: '알파 센타우리 (Alpha Centauri)', tag: 'STAGE 12/16', emoji: '🌟', desc: '태양계에서 가장 가까운 삼중 항성계', flameColor: '#fde047', planetColor: '#eab308', heatGoal: 20000 },
+      { id: 12, name: '시리우스 (Sirius)', tag: 'STAGE 13/16', emoji: '💫', desc: '밤하늘에서 가장 눈부시게 빛나는 주계열성', flameColor: '#38bdf8', planetColor: '#38bdf8', heatGoal: 30000 },
+      { id: 13, name: '오리온 성운 (Orion Nebula)', tag: 'STAGE 14/16', emoji: '🌌', desc: '새로운 아기 별들이 탄생하는 고밀도 성운', flameColor: '#f43f5e', planetColor: '#f43f5e', heatGoal: 45000 },
+      { id: 14, name: '안드로메다 은하 (Andromeda Galaxy)', tag: 'STAGE 15/16', emoji: '🌀', desc: '우리 은하의 이웃 거대 나선 은하', flameColor: '#a855f7', planetColor: '#8b5cf6', heatGoal: 65000 },
+      { id: 15, name: '우주의 끝 (Cosmic Horizon)', tag: 'STAGE 16/16', emoji: '✨', desc: '인류 탐사선의 최종 한계선, 관측 가능한 우주의 끝', flameColor: '#ec4899', planetColor: '#ec4899', heatGoal: 100000 }
+    ];
+
+    /* Fuel Types Configuration */
+    const FUEL_TYPES = {
+      leaf: { id: 'leaf', name: '건조한 나뭇잎', icon: 'fa-leaf', color: 'text-amber-500', heat: 5, cooldown: 150 },
+      pinecone: { id: 'pinecone', name: '기름진 솔방울', icon: 'fa-cubes-stacked', color: 'text-amber-700', heat: 12, cooldown: 400 },
+      twig: { id: 'twig', name: '마른 잔가지', icon: 'fa-align-justify', color: 'text-yellow-600', heat: 25, cooldown: 800 },
+      log: { id: 'log', name: '참나무 통나무', icon: 'fa-tree', color: 'text-orange-700', heat: 50, cooldown: 1500 },
+      coal: { id: 'coal', name: '고칼로리 석탄', icon: 'fa-gem', color: 'text-slate-400', heat: 100, cooldown: 3000 },
+      gasoline: { id: 'gasoline', name: '액체 가솔린', icon: 'fa-flask', color: 'text-red-500', heat: 200, cooldown: 6000 }
+    };
+
+    /* Upgrade Items */
+    const UPGRADE_ITEMS = [
+      { id: 'leaf_eff', category: 'fuels', title: '나뭇잎 건조 연마', desc: '나뭇잎의 화력 제공량을 레벨당 +2.0 증가시킵니다.', baseCost: 3.0, costMult: 1.45, maxLvl: 99 },
+      { id: 'unlock_pinecone', category: 'fuels', title: '솔방울 채집술', desc: '새로운 연료 [기름진 솔방울 (+12 Heat)]을 해금합니다.', baseCost: 5.0, costMult: 1.0, maxLvl: 1 },
+      { id: 'pinecone_eff', category: 'fuels', title: '솔방울 가열 효율', desc: '솔방울의 화력 제공량을 레벨당 +4.0 증가시킵니다.', baseCost: 8.0, costMult: 1.45, req: 'unlock_pinecone', maxLvl: 99 },
+      { id: 'unlock_twig', category: 'fuels', title: '잔가지 다발 해금', desc: '새로운 연료 [마른 잔가지 (+25 Heat)]를 해금합니다.', baseCost: 15.0, costMult: 1.0, req: 'unlock_pinecone', maxLvl: 1 },
+      { id: 'twig_eff', category: 'fuels', title: '잔가지 고온 건조', desc: '잔가지의 화력 제공량을 레벨당 +8.0 증가시킵니다.', baseCost: 20.0, costMult: 1.45, req: 'unlock_twig', maxLvl: 99 },
+      { id: 'unlock_log', category: 'fuels', title: '참나무 벌목 허가', desc: '새로운 연료 [참나무 통나무 (+50 Heat)]를 해금합니다.', baseCost: 35.0, costMult: 1.0, req: 'unlock_twig', maxLvl: 1 },
+      { id: 'log_eff', category: 'fuels', title: '통나무 압축 가공', desc: '통나무의 화력 제공량을 레벨당 +15.0 증가시킵니다.', baseCost: 45.0, costMult: 1.45, req: 'unlock_log', maxLvl: 99 },
+      { id: 'unlock_coal', category: 'fuels', title: '고탄소 석탄 채굴', desc: '새로운 연료 [고칼로리 석탄 (+100 Heat)]을 해금합니다.', baseCost: 80.0, costMult: 1.0, req: 'unlock_log', maxLvl: 1 },
+      { id: 'coal_eff', category: 'fuels', title: '석탄 고탄소 정제', desc: '석탄의 화력 제공량을 레벨당 +30.0 증가시킵니다.', baseCost: 100.0, costMult: 1.45, req: 'unlock_coal', maxLvl: 99 },
+      { id: 'unlock_gasoline', category: 'fuels', title: '액체 정제유 추출', desc: '최상위 연료 [액체 가솔린 (+200 Heat)]을 해금합니다.', baseCost: 200.0, costMult: 1.0, req: 'unlock_coal', maxLvl: 1 },
+      { id: 'gasoline_eff', category: 'fuels', title: '가솔린 옥탄가 증대', desc: '가솔린의 화력 제공량을 레벨당 +60.0 증가시킵니다.', baseCost: 250.0, costMult: 1.45, req: 'unlock_gasoline', maxLvl: 99 },
+
+      { id: 'auto_thrower', category: 'automation', title: '자동 투하기 가속 엔진', desc: '나뭇잎 자동 투하 속도를 지속 증가시킵니다 (최대 99단계).', baseCost: 10.0, costMult: 1.42, maxLvl: 99 },
+      { id: 'draft_wings', category: 'automation', title: '상승 기류 부스터', desc: '화력 대비 전진 이동 거리가 레벨당 +15% 증가합니다.', baseCost: 12.0, costMult: 1.42, maxLvl: 99 },
+      { id: 'comet_fever_ext', category: 'automation', title: '혜성 수신기 성능 향상', desc: '혜성 피버 지속 시간이 레벨당 +0.5초 증가합니다.', baseCost: 15.0, costMult: 1.42, maxLvl: 99 },
+
+      { id: 'canopy', category: 'defense', title: '방수 천막 차양막 강화', desc: '폭우 시 화력 감쇠량을 추가 방어합니다.', baseCost: 8.0, costMult: 1.40, maxLvl: 99 },
+      { id: 'windbreak', category: 'defense', title: '바람막이 단열 석벽', desc: '평상시 자연 화력 감쇠속도를 레벨당 추가 감소시킵니다.', baseCost: 7.0, costMult: 1.40, maxLvl: 99 },
+      { id: 'ember_insurance', category: 'defense', title: '예비 불씨 (보험)', desc: '화력이 0이 될 때 1회 한정으로 +20 Heat를 즉시 복구해 게임 오버를 방지합니다.', baseCost: 20.0, costMult: 1.0, maxLvl: 1 }
+    ];
+
+    function getUpgradeCost(item) {
+      const lvl = state.upgrades[item.id] || 0;
+      if (item.maxLvl === 1) return item.baseCost;
+      return +(item.baseCost * Math.pow(item.costMult, lvl)).toFixed(1);
+    }
+
+    /* Extended Quiz Database */
+    const QUIZ_DATA = {
+      0: [
+        { q: "수성은 태양계에서 어떤 위치에 있나요?", options: ["태양과 가장 가까운 행성", "가장 먼 행성", "가장 큰 행성", "고리가 있는 행성"], a: 0 },
+        { q: "수성 표면의 특징으로 올바른 것은?", options: ["거대한 바다", "수많은 운석 크레이터", "얼음 대륙", "울창한 숲"], a: 1 },
+        { q: "수성의 위성(달) 개수는 몇 개일까요?", options: ["0개", "1개", "2개", "79개"], a: 0 }
+      ],
+      1: [
+        { q: "금성 대기의 대부분을 차지하는 가스는?", options: ["산소", "이산화탄소", "수소", "헬륨"], a: 1 },
+        { q: "금성이 태양계에서 가장 뜨거운 이유는?", options: ["태양과 제일 가까워서", "온실 효과 때문에", "자체 핵융합", "마그마 바다"], a: 1 },
+        { q: "금성은 어느 방향으로 자전하나요?", options: ["시계 반대 방향", "동쪽에서 서쪽(시계 방향)", "위에서 아래", "자전하지 않음"], a: 1 }
+      ],
+      2: [
+        { q: "지구 대기 중 가장 많은 비율을 차지하는 기체는?", options: ["산소", "질소", "이산화탄소", "아르곤"], a: 1 },
+        { q: "지구 표면에서 바다가 차지하는 비율은 약 몇 %일까요?", options: ["30%", "50%", "71%", "95%"], a: 2 },
+        { q: "지구의 유일한 천연 위성의 이름은?", options: ["달 (Moon)", "포보스", "타이탄", "유로파"], a: 0 }
+      ],
+      3: [
+        { q: "화성이 붉게 보이는 주된 이유는 표면에 무엇이 많아서일까요?", options: ["구리", "산화철(녹슨 철)", "금", "유황"], a: 1 },
+        { q: "화성에 있는 태양계 최대 화산의 이름은?", options: ["백두산", "후지산", "올림푸스 산", "에베레스트"], a: 2 },
+        { q: "화성의 위성 개수는 몇 개인가요?", options: ["1개", "2개 (포보스, 데이모스)", "4개", "없음"], a: 1 }
+      ],
+      4: [
+        { q: "목성은 태양계에서 어떤 행성인가요?", options: ["가장 작은 행성", "가장 암석이 많은 행성", "가장 큰 거대 가스 행성", "물이 제일 많은 행성"], a: 2 },
+        { q: "목성 표면에 보이는 거대한 붉은 폭풍 소용돌이의 이름은?", options: ["대적점 (Great Red Spot)", "대암점", "태풍 1호", "붉은 바다"], a: 0 },
+        { q: "목성에서 갈릴레이가 발견한 주요 위성 수는?", options: ["2개", "4개", "12개", "50개"], a: 1 }
+      ],
+      5: [
+        { q: "토성의 가장 두드러진 외형적 특징은?", options: ["거대한 얼음 고리", "파란색 대기", "두 개의 태양", "네모난 모양"], a: 0 },
+        { q: "토성의 밀도는 물보다 낮아서 어떤 현상이 일어날까요?", options: ["물에 떠오른다", "공중에 부유한다", "녹아서 사라진다", "폭발한다"], a: 0 },
+        { q: "토성의 가장 큰 위성이며 두꺼운 대기를 가진 위성은?", options: ["타이탄 (Titan)", "달", "이오", "칼리스토"], a: 0 }
+      ],
+      6: [
+        { q: "천왕성의 자전축은 다른 행성과 달리 어떻게 기울어져 있나요?", options: ["직각(90도)", "약 98도로 거의 누워서 자전", "기울어지지 않음", "거꾸로 자전"], a: 1 },
+        { q: "천왕성이 청록색으로 보이는 이유는 대기에 어떤 기체가 있어서일까요?", options: ["산소", "메탄", "질소", "수증기"], a: 1 },
+        { q: "천왕성을 처음 발견한 천문학자는?", options: ["갈릴레오", "윌리엄 허셜", "케플러", "뉴턴"], a: 1 }
+      ],
+      7: [
+        { q: "태양계의 가장 외곽에 위치한 8번째 행성은?", options: ["명왕성", "천왕성", "해왕성 (Neptune)", "토성"], a: 2 },
+        { q: "해왕성의 대기 표면에서 관측된 거대한 검은 폭풍의 이름은?", options: ["대암점 (Great Dark Spot)", "대적점", "검은 구멍", "다크 홀"], a: 0 },
+        { q: "해왕성의 가장 큰 역방향 공전 위성은?", options: ["트리톤 (Triton)", "타이탄", "가니메데", "유로파"], a: 0 }
+      ],
+      8: [
+        { q: "명왕성은 과거 행성이었다가 현재 어떤 천체 분류에 속하나요?", options: ["왜소행성 (Dwarf Planet)", "위성", "혜성", "항성"], a: 0 },
+        { q: "명왕성 표면에 발견된 거대한 하트 모양 지형의 이름은?", options: ["톰보 영역 (Tombaugh Regio)", "올림푸스", "붉은 바다", "얼음 계곡"], a: 0 },
+        { q: "명왕성의 가장 큰 위성 이름은 무엇일까요?", options: ["카론 (Charon)", "달", "포보스", "타이탄"], a: 0 }
+      ],
+      9: [
+        { q: "카이퍼 벨트는 주로 무엇으로 이루어진 소천체 영역인가요?", options: ["용암과 마그마", "얼음과 수증기-메탄 결정", "거대한 목재", "고체 금속"], a: 1 },
+        { q: "카이퍼 벨트에서 출발하는 주요 천체 종류는?", options: ["단주기 혜성", "태양", "블랙홀", "은하"], a: 0 },
+        { q: "카이퍼 벨트는 태양계의 어느 천체 궤도 바깥에 존재하나요?", options: ["지구", "화성", "해왕성", "수성"], a: 2 }
+      ],
+      10: [
+        { q: "오르트 구름은 태양계를 어떤 모양으로 감싸고 있는 혜성 집단인가요?", options: ["평평한 원반", "거대한 구형 (Sphere)", "네모 상자", "세모 모양"], a: 1 },
+        { q: "오르트 구름에서 태양계 안쪽으로 들어오는 대표적인 천체는?", options: ["장주기 혜성", "소행성", "은하수", "인공위성"], a: 0 },
+        { q: "오르트 구름의 거리는 약 몇 AU(태양-지구 거리)에 달할까요?", options: ["10 AU", "100 AU", "수만 AU", "1 AU"], a: 2 }
+      ],
+      11: [
+        { q: "알파 센타우리는 몇 개의 별이 서로를 도는 다중 항성계인가요?", options: ["1개", "2개", "3개 (삼중 항성계)", "100개"], a: 2 },
+        { q: "알파 센타우리 성계 중 태양과 가장 가까운 적색 왜성의 이름은?", options: ["프록시마 센타우리 (Proxima Centauri)", "시리우스", "베텔게우스", "폴라리스"], a: 0 },
+        { q: "알파 센타우리까지의 거리는 약 몇 광년(Light Year)인가요?", options: ["약 4.3광년", "약 100광년", "10,000광년", "0.1광년"], a: 0 }
+      ],
+      12: [
+        { q: "시리우스는 어떤 별자리에 속해 있나요?", options: ["큰개자리 (Canis Major)", "오리온자리", "카시오페아", "전갈자리"], a: 0 },
+        { q: "시리우스의 별명 중 가장 유래가 깊은 별명은?", options: ["천랑성 (Dog Star)", "북극성", "태양", "붉은 거성"], a: 0 },
+        { q: "시리우스 별 옆을 동반하여 도는 흰색 왜성의 이름은?", options: ["시리우스 B", "알파 A", "베가", "데네브"], a: 0 }
+      ],
+      13: [
+        { q: "오리온 성운(M42)은 가스와 먼지로 이루어져 무엇이 발생하는 장소인가요?", options: ["새로운 별들의 탄생 (Star Nursery)", "블랙홀 소멸", "행성 파괴", "화산 폭발"], a: 0 },
+        { q: "오리온 성운은 밤하늘의 어떤 별자리 가슴 부근에 위치하나요?", options: ["오리온자리", "황소자리", "쌍둥이자리", "사자자리"], a: 0 },
+        { q: "성운이 스스로 빛을 내는 성운 형태를 무엇이라 부르나요?", options: ["발광 성운 (Emission Nebula)", "암흑 성운", "행성상 성운", "반사 성운"], a: 0 }
+      ],
+      14: [
+        { q: "안드로메다 은하는 우리 은하(Milky Way Galaxy)와 어떤 관계인가요?", options: ["가장 가까운 거대 이웃 나선 은하", "우리 은하 내부의 별", "태양계의 위성", "사라진 은하"], a: 0 },
+        { q: "미래 수십억 년 뒤 안드로메다 은하와 우리 은하에는 어떤 일이 벌어질까요?", options: ["두 은하의 충돌 및 합병", "멀어져서 영원히 이별", "폭발하여 사라짐", "변함 없음"], a: 0 },
+        { q: "안드로메다 은하에는 약 몇 개의 별이 존재하는 것으로 추정되나요?", options: ["약 1조 개", "1,000개", "1억 개", "100개"], a: 0 }
+      ],
+      15: [
+        { q: "우주의 나이는 현재 과학계에서 약 몇 년으로 추정하나요?", options: ["약 138억 년", "100만 년", "6000년", "1조 년"], a: 0 },
+        { q: "우주가 빛의 속도보다 더 빠르게 팽창하는 원인인 미지의 에너지는?", options: ["암흑 에너지 (Dark Energy)", "석탄 에너지", "원자력", "풍력"], a: 0 },
+        { q: "관측 가능한 우주의 경계선을 무엇이라 부르나요?", options: ["코스믹 호라이즌 (Cosmic Horizon)", "태양계 관문", "은하철도", "대류권"], a: 0 }
+      ]
+    };
+
+    /* Falling Fuel Particles */
+    class FallingFuel {
+      constructor(typeKey, targetX, targetY) {
+        this.typeKey = typeKey;
+        this.type = FUEL_TYPES[typeKey];
+        this.x = targetX;
+        this.y = -30;
+        this.targetY = targetY;
+        this.vy = 5 + Math.random() * 3;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.vRot = (Math.random() - 0.5) * 0.1;
+        this.size = 24;
+      }
+      update() {
+        this.y += this.vy;
+        this.rotation += this.vRot;
+        if (this.y >= this.targetY) {
+          let gain = this.type.heat;
+          if (this.typeKey === 'leaf' && state.upgrades['leaf_eff']) gain += state.upgrades['leaf_eff'] * 2.0;
+          if (this.typeKey === 'pinecone' && state.upgrades['pinecone_eff']) gain += state.upgrades['pinecone_eff'] * 4.0;
+          if (this.typeKey === 'twig' && state.upgrades['twig_eff']) gain += state.upgrades['twig_eff'] * 8.0;
+          if (this.typeKey === 'log' && state.upgrades['log_eff']) gain += state.upgrades['log_eff'] * 15.0;
+          if (this.typeKey === 'coal' && state.upgrades['coal_eff']) gain += state.upgrades['coal_eff'] * 30.0;
+          if (this.typeKey === 'gasoline' && state.upgrades['gasoline_eff']) gain += state.upgrades['gasoline_eff'] * 60.0;
+
+          addHeat(gain);
+          createHeatPopup(this.x, this.y, `+${gain.toFixed(0)} Heat`);
+          sound.playPop();
+          return false;
+        }
+        return true;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.fillStyle = '#f97316';
+        ctx.shadowColor = '#fdba74';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    /* Comet Object for Fever Mode */
+    class Comet {
+      constructor(w, h) {
+        this.x = -50;
+        this.y = Math.random() * (h * 0.4);
+        this.vx = 4 + Math.random() * 3;
+        this.vy = 1 + Math.random() * 1.5;
+        this.radius = 18;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+      isHit(mx, my) {
+        const dx = this.x - mx;
+        const dy = this.y - my;
+        return Math.sqrt(dx * dx + dy * dy) <= this.radius + 20;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#c084fc';
+        const grad = ctx.createRadialGradient(this.x, this.y, 2, this.x, this.y, this.radius);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.5, '#e879f9');
+        grad.addColorStop(1, '#a855f7');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Comet Tail
+        ctx.strokeStyle = 'rgba(216, 180, 254, 0.4)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - 60, this.y - 20);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /* Ember Particles from Bonfire */
+    class EmberParticle {
+      constructor(cx, cy) {
+        this.x = cx + (Math.random() - 0.5) * 40;
+        this.y = cy - 10;
+        this.vx = (Math.random() - 0.5) * 1.5;
+        this.vy = -(1.5 + Math.random() * 2.5);
+        this.alpha = 1.0;
+        this.size = 2 + Math.random() * 3;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= 0.02;
+        return this.alpha > 0;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = '#fbbf24';
+        ctx.shadowColor = '#f97316';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    /* Rain Particles */
+    class RainParticle {
+      constructor(w, h) {
+        this.x = Math.random() * w;
+        this.y = Math.random() * -h;
+        this.length = 15 + Math.random() * 15;
+        this.vy = 12 + Math.random() * 8;
+      }
+      update(w, h) {
+        this.y += this.vy;
+        if (this.y > h) {
+          this.y = -20;
+          this.x = Math.random() * w;
+        }
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(125, 211, 252, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - 2, this.y + this.length);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /* Fireworks Particle */
+    class FireworkParticle {
+      constructor(cx, cy) {
+        this.x = cx;
+        this.y = cy;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 5;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.alpha = 1.0;
+        this.color = `hsl(${Math.random() * 360}, 100%, 65%)`;
+      }
+      update(dt) {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 1.5 * dt;
+        this.alpha -= 0.8 * dt;
+        return this.alpha > 0;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      const container = document.getElementById('canvas-container');
+      if (!container) return;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+
+      rainParticles = [];
+      for (let i = 0; i < 70; i++) {
+        rainParticles.push(new RainParticle(canvas.width, canvas.height));
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawPlanetGraphic(ctx, cx, cy, stageIdx) {
+      const p = PLANETS[stageIdx] || PLANETS[0];
+      const r = Math.min(40, canvas.height * 0.12);
+
+      ctx.save();
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = p.planetColor;
+
+      // Saturn / Rings check
+      if (stageIdx === 5) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(0.3);
+        ctx.strokeStyle = 'rgba(234, 179, 8, 0.7)';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.8, r * 0.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Planet Body
+      const pGrad = ctx.createRadialGradient(cx - 10, cy - 10, 5, cx, cy, r);
+      pGrad.addColorStop(0, '#ffffff');
+      pGrad.addColorStop(0.4, p.planetColor);
+      pGrad.addColorStop(1, '#020617');
+
+      ctx.fillStyle = pGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Atmospheric Glow
+      ctx.strokeStyle = p.flameColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawBonfire(ctx, cx, cy, heat) {
+      ctx.save();
+
+      // Base Logs
+      ctx.fillStyle = '#451a03';
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 4;
+
+      ctx.save();
+      ctx.translate(cx - 15, cy + 20);
+      ctx.rotate(-0.3);
+      ctx.beginPath();
+      ctx.roundRect(-25, -6, 50, 12, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(cx + 15, cy + 20);
+      ctx.rotate(0.3);
+      ctx.beginPath();
+      ctx.roundRect(-25, -6, 50, 12, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+
+      // Fire Outer Glow
+      const flameScale = Math.min(2.5, Math.max(0.3, heat / 40));
+      const flameHeight = 45 * flameScale;
+      const flameWidth = 35 * flameScale;
+
+      const time = performance.now() * 0.005;
+      const jitter = Math.sin(time * 3) * 4;
+
+      const curPlanetColor = PLANETS[state.currentPlanetIdx].flameColor;
+      const glowGrad = ctx.createRadialGradient(cx, cy - 10, 5, cx, cy - 10, flameWidth * 2.5);
+      glowGrad.addColorStop(0, curPlanetColor);
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 10, flameWidth * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Outer Flame Layer
+      ctx.fillStyle = curPlanetColor;
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = curPlanetColor;
+      ctx.beginPath();
+      ctx.moveTo(cx - flameWidth, cy + 15);
+      ctx.quadraticCurveTo(cx - flameWidth * 0.8, cy - flameHeight * 0.6, cx + jitter, cy - flameHeight - 10);
+      ctx.quadraticCurveTo(cx + flameWidth * 0.8, cy - flameHeight * 0.6, cx + flameWidth, cy + 15);
+      ctx.closePath();
+      ctx.fill();
+
+      // Inner Core Flame
+      ctx.fillStyle = '#fef08a';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#fde047';
+      ctx.beginPath();
+      ctx.moveTo(cx - flameWidth * 0.5, cy + 15);
+      ctx.quadraticCurveTo(cx - flameWidth * 0.3, cy - flameHeight * 0.4, cx - jitter * 0.5, cy - flameHeight * 0.7);
+      ctx.quadraticCurveTo(cx + flameWidth * 0.3, cy - flameHeight * 0.4, cx + flameWidth * 0.5, cy + 15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawBackground(ctx, w, h) {
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, '#020617');
+      grad.addColorStop(0.6, '#0f172a');
+      grad.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      for (let i = 0; i < 40; i++) {
+        let sx = (Math.sin(i * 99 + state.distance * 0.01) * 0.5 + 0.5) * w;
+        let sy = (Math.cos(i * 33) * 0.5 + 0.5) * (h * 0.7);
+        ctx.fillRect(sx, sy, (i % 3 === 0 ? 2 : 1), (i % 3 === 0 ? 2 : 1));
+      }
+
+      drawPlanetGraphic(ctx, w / 2, h * 0.28, state.currentPlanetIdx);
+    }
+
+    let lastTime = 0;
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const dt = Math.min(0.1, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+
+      update(dt);
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+      // 1. Rain & Weather Cycle
+      state.rainTimer -= dt;
+      if (state.rainTimer <= 0) {
+        if (state.rainActive) {
+          state.rainActive = false;
+          state.rainTimer = 10 + Math.random() * 5;
+          showBanner('☀️ 폭우가 그치고 날씨가 맑아졌습니다.', 'bg-emerald-600 text-white');
+        } else {
+          state.rainActive = true;
+          state.rainTimer = state.rainDuration;
+          showBanner('🌧️ 거센 폭우 발생! 화력이 급격히 약해집니다!', 'bg-sky-600 text-white animate-pulse');
+        }
+      }
+
+      // 2. Fever Mode Timer
+      if (state.feverActive) {
+        state.feverTimer -= dt;
+        if (state.feverTimer <= 0) {
+          state.feverActive = false;
+          showBanner('혜성 피버 타임이 종료되었습니다.', 'bg-slate-700 text-slate-200');
+        }
+      }
+
+      // 3. Heat Decay Logic
+      let baseDecay = 1.2;
+      const windbreakLvl = state.upgrades['windbreak'] || 0;
+      baseDecay = Math.max(0.2, baseDecay - windbreakLvl * 0.15);
+
+      let rainDecay = 0;
+      if (state.rainActive) {
+        const canopyLvl = state.upgrades['canopy'] || 0;
+        rainDecay = Math.max(1.0, 8.0 - canopyLvl * 1.2);
+      }
+
+      let totalDecay = baseDecay + rainDecay;
+      if (state.feverActive) totalDecay = 0;
+
+      state.heat -= totalDecay * dt;
+      checkGameOver();
+
+      // 4. Distance & Money Generation (10m = 1원)
+      const speedBoost = 1 + (state.upgrades['draft_wings'] || 0) * 0.15;
+      const distanceGain = (state.heat / 10) * speedBoost * dt * 2.0;
+      state.distance += distanceGain;
+      state.money += distanceGain / 10.0;
+
+      // 5. Auto Thrower Logic
+      const autoLvl = state.upgrades['auto_thrower'] || 0;
+      if (autoLvl > 0) {
+        autoThrowTimer += dt;
+        const interval = Math.max(0.3, 2.5 - autoLvl * 0.2);
+        if (autoThrowTimer >= interval) {
+          autoThrowTimer = 0;
+          dropFuel('leaf');
+        }
+      }
+
+      // 6. Comet Spawning
+      if (comets.length === 0 && Math.random() < 0.003) {
+        comets.push(new Comet(canvas.width, canvas.height));
+      }
+      comets = comets.filter(c => {
+        c.update();
+        return c.x < canvas.width + 100;
+      });
+
+      // 7. Falling Fuel Items Update
+      fallingFuels = fallingFuels.filter(f => f.update());
+
+      // 8. Fireworks Update
+      fireworks = fireworks.filter(fw => fw.update(dt));
+
+      // 9. Sync UI
+      updateUI(totalDecay);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawBackground(ctx, canvas.width, canvas.height);
+
+      if (state.rainActive) {
+        rainParticles.forEach(p => {
+          p.update(canvas.width, canvas.height);
+          p.draw(ctx);
+        });
+      }
+
+      const bonfireX = canvas.width / 2;
+      const bonfireY = canvas.height * 0.8;
+      drawBonfire(ctx, bonfireX, bonfireY, state.heat);
+
+      if (Math.random() < 0.4 && state.heat > 0) {
+        emberParticles.push(new EmberParticle(bonfireX, bonfireY));
+      }
+      emberParticles = emberParticles.filter(p => {
+        const alive = p.update();
+        if (alive) p.draw(ctx);
+        return alive;
+      });
+
+      fallingFuels.forEach(f => f.draw(ctx));
+      comets.forEach(c => c.draw(ctx));
+      fireworks.forEach(fw => fw.draw(ctx));
+    }
+
+    function addHeat(amount) {
+      state.heat = Math.max(0, state.heat + amount);
+      if (state.heat >= state.targetHeat && !state.isQuizActive) {
+        triggerQuizModal();
+      }
+    }
+
+    function checkGameOver() {
+      if (state.heat <= 0) {
+        if (state.upgrades['ember_insurance'] > 0) {
+          state.upgrades['ember_insurance'] = 0;
+          state.heat = 20;
+          showBanner('🛡️ 예비 불씨 발동! 모닥불 소화를 방지했습니다!', 'bg-emerald-600 text-white font-bold');
+          sound.playPop();
+          return;
+        }
+
+        sound.playSizzle();
+        document.getElementById('go-planet-name').innerText = PLANETS[state.currentPlanetIdx].name;
+        document.getElementById('go-distance').innerText = `${state.distance.toFixed(1)} m`;
+        document.getElementById('go-money').innerText = `${state.money.toFixed(1)} 원`;
+        document.getElementById('gameover-fireout-modal').classList.remove('hidden');
+      }
+    }
+
+    function resetFireGame() {
+      state.heat = 30;
+      state.distance = 0;
+      state.money = 0;
+      state.currentPlanetIdx = 0;
+      state.targetHeat = PLANETS[0].heatGoal;
+      state.rainActive = false;
+      state.rainTimer = 10;
+      state.feverActive = false;
+      state.isQuizActive = false;
+      state.upgrades = {};
+      state.unlockedFuels = { leaf: true, pinecone: false, twig: false, log: false, coal: false, gasoline: false };
+
+      document.getElementById('gameover-fireout-modal').classList.add('hidden');
+      renderFuelCards();
+      showBanner('🔥 모닥불을 다시 지폈습니다!', 'bg-orange-600 text-white');
+    }
+
+    function dropFuel(typeKey) {
+      dropFuelAt(typeKey, canvas.width / 2);
+    }
+
+    function dropFuelAt(typeKey, xPos) {
+      const bonfireY = canvas.height * 0.8;
+      fallingFuels.push(new FallingFuel(typeKey, xPos, bonfireY));
+    }
+
+    function createHeatPopup(x, y, text) {
+      const container = document.getElementById('canvas-container');
+      if (!container) return;
+      const pop = document.createElement('div');
+      pop.className = 'float-num text-amber-400 text-xs sm:text-sm drop-shadow-lg';
+      pop.innerText = text;
+      pop.style.left = `${x}px`;
+      pop.style.top = `${y}px`;
+      container.appendChild(pop);
+      setTimeout(() => pop.remove(), 1200);
+    }
+
+    function showBanner(msg, bgClass) {
+      const banner = document.getElementById('status-banner');
+      const content = document.getElementById('status-banner-content');
+      content.className = `px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-bold text-[11px] sm:text-xs flex items-center justify-center gap-2 shadow-2xl backdrop-blur ${bgClass}`;
+      content.innerHTML = msg;
+      banner.classList.remove('opacity-0');
+      setTimeout(() => {
+        banner.classList.add('opacity-0');
+      }, 3000);
+    }
+
+    function renderFuelCards() {
+      const container = document.getElementById('fuels-container');
+      container.innerHTML = '';
+
+      Object.keys(FUEL_TYPES).forEach(typeKey => {
+        const fuel = FUEL_TYPES[typeKey];
+        const isUnlocked = state.unlockedFuels[typeKey];
+
+        let curGain = fuel.heat;
+        if (typeKey === 'leaf' && state.upgrades['leaf_eff']) curGain += state.upgrades['leaf_eff'] * 2.0;
+        if (typeKey === 'pinecone' && state.upgrades['pinecone_eff']) curGain += state.upgrades['pinecone_eff'] * 4.0;
+        if (typeKey === 'twig' && state.upgrades['twig_eff']) curGain += state.upgrades['twig_eff'] * 8.0;
+        if (typeKey === 'log' && state.upgrades['log_eff']) curGain += state.upgrades['log_eff'] * 15.0;
+        if (typeKey === 'coal' && state.upgrades['coal_eff']) curGain += state.upgrades['coal_eff'] * 30.0;
+        if (typeKey === 'gasoline' && state.upgrades['gasoline_eff']) curGain += state.upgrades['gasoline_eff'] * 60.0;
+
+        const card = document.createElement('div');
+        if (isUnlocked) {
+          card.className = 'fuel-card p-2.5 sm:p-3 rounded-2xl bg-slate-900 border border-slate-700/80 flex items-center justify-between hover:border-orange-500/60 transition shadow-lg cursor-pointer select-none';
+          card.draggable = true;
+          card.setAttribute('data-type', typeKey);
+
+          card.ondragstart = (e) => {
+            e.dataTransfer.setData('text/plain', typeKey);
+          };
+
+          card.onclick = (e) => {
+            // Prevent trigger if it was a touch drag
+            if (card.dataset.touchDragging) return;
+            dropFuel(typeKey);
+          };
+
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 sm:gap-3 pointer-events-none">
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-base sm:text-lg ${fuel.color} shrink-0">
+                <i class="fa-solid ${fuel.icon}"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-white">${fuel.name}</h4>
+                <p class="text-[10px] text-amber-400 font-bold">+${curGain.toFixed(1)} Heat 제공</p>
+              </div>
+            </div>
+            <button class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-orange-600/20 text-orange-400 hover:bg-orange-600 hover:text-white border border-orange-500/40 text-[11px] sm:text-xs font-bold transition pointer-events-none">
+              투하하기
+            </button>
+          `;
+
+          // Attach Mobile Touch Drag support
+          attachTouchDragToCard(card, typeKey);
+        } else {
+          card.className = 'p-2.5 sm:p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between opacity-50 select-none';
+          card.innerHTML = `
+            <div class="flex items-center gap-2.5 sm:gap-3">
+              <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-base sm:text-lg text-slate-600 shrink-0">
+                <i class="fa-solid fa-lock"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-slate-500">${fuel.name} (잠김)</h4>
+                <p class="text-[10px] text-slate-600">연구 트리에서 해금 가능</p>
+              </div>
+            </div>
+          `;
+        }
+        container.appendChild(card);
+      });
+    }
+
+    function renderUpgradeTree(category = 'fuels') {
+      activeTab = category;
+      document.getElementById('modal-money-display').innerText = `${state.money.toFixed(1)} 원`;
+      const listContainer = document.getElementById('upgrade-tree-list');
+      listContainer.innerHTML = '';
+
+      const items = UPGRADE_ITEMS.filter(item => item.category === category);
+
+      items.forEach(item => {
+        const curLvl = state.upgrades[item.id] || 0;
+        const isMax = curLvl >= item.maxLvl;
+        const cost = getUpgradeCost(item);
+        const canAfford = state.money >= cost && !isMax;
+
+        let reqMet = true;
+        if (item.req && !state.upgrades[item.req]) {
+          reqMet = false;
+        }
+
+        const el = document.createElement('div');
+        el.className = 'p-3 sm:p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-between gap-2 sm:gap-3';
+
+        el.innerHTML = `
+          <div class="space-y-0.5 sm:space-y-1 max-w-[65%]">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <span class="text-xs font-bold text-white">${item.title}</span>
+              <span class="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-700 text-amber-300 font-orbitron shrink-0">
+                Lv. ${curLvl} / ${item.maxLvl}
+              </span>
+            </div>
+            <p class="text-[10px] sm:text-[11px] text-slate-400 leading-snug">${item.desc}</p>
+          </div>
+          <div class="shrink-0">
+            ${!reqMet ? `
+              <span class="text-[10px] text-rose-400 font-bold">선행 연구 필요</span>
+            ` : isMax ? `
+              <button disabled class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-700 text-slate-400 text-xs font-bold cursor-not-allowed">
+                최대 레벨
+              </button>
+            ` : `
+              <button onclick="buyUpgrade('${item.id}')" class="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl ${canAfford ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black shadow-md' : 'bg-slate-700 text-slate-400 cursor-not-allowed'} text-xs transition flex items-center gap-1">
+                <i class="fa-solid fa-coins"></i>
+                <span>${cost} 원</span>
+              </button>
+            `}
+          </div>
+        `;
+        listContainer.appendChild(el);
+      });
+    }
+
+    function buyUpgrade(itemId) {
+      const item = UPGRADE_ITEMS.find(i => i.id === itemId);
+      if (!item) return;
+
+      const cost = getUpgradeCost(item);
+      if (state.money >= cost) {
+        state.money -= cost;
+        state.upgrades[itemId] = (state.upgrades[itemId] || 0) + 1;
+
+        // Apply unlock effects
+        if (itemId === 'unlock_pinecone') state.unlockedFuels.pinecone = true;
+        if (itemId === 'unlock_twig') state.unlockedFuels.twig = true;
+        if (itemId === 'unlock_log') state.unlockedFuels.log = true;
+        if (itemId === 'unlock_coal') state.unlockedFuels.coal = true;
+        if (itemId === 'unlock_gasoline') state.unlockedFuels.gasoline = true;
+
+        sound.playPop();
+        renderFuelCards();
+        renderUpgradeTree(activeTab);
+      }
+    }
+
+    function updateUI(totalDecay) {
+      const curPlanet = PLANETS[state.currentPlanetIdx];
+
+      document.getElementById('planet-badge').innerText = curPlanet.emoji;
+      document.getElementById('planet-name').innerText = curPlanet.name;
+      document.getElementById('planet-stage-tag').innerText = curPlanet.tag;
+      document.getElementById('planet-desc').innerText = curPlanet.desc;
+
+      document.getElementById('heat-display').innerText = `${state.heat.toFixed(1)} / ${state.targetHeat} Heat`;
+      document.getElementById('heat-value-large').innerText = state.heat.toFixed(1);
+
+      document.getElementById('header-distance-display').innerText = `${state.distance.toFixed(1)} m`;
+      document.getElementById('header-money-display').innerText = `${state.money.toFixed(1)} 원`;
+      document.getElementById('hud-money-display').innerText = `${state.money.toFixed(1)}`;
+
+      const pct = Math.min(100, (state.heat / state.targetHeat) * 100);
+      document.getElementById('planet-progress').style.width = `${pct}%`;
+      document.getElementById('progress-text').innerText = `목표 화력: ${state.targetHeat} Heat (${pct.toFixed(0)}%)`;
+
+      document.getElementById('decay-rate-display').innerText = `-${totalDecay.toFixed(1)} Heat/초`;
+
+      const rainDot = document.getElementById('rain-status-dot');
+      const rainText = document.getElementById('rain-status-text');
+      const timerText = document.getElementById('rain-timer-text');
+
+      if (state.rainActive) {
+        rainDot.className = 'w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping';
+        rainText.innerText = '🌧️ 폭우 진행 중!';
+        timerText.innerText = `${state.rainTimer.toFixed(1)}초 남음`;
+        document.getElementById('storm-flash-overlay').style.opacity = '0.7';
+      } else {
+        rainDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping';
+        rainText.innerText = '기후 안정적';
+        timerText.innerText = `${state.rainTimer.toFixed(0)}초 후 발생`;
+        document.getElementById('storm-flash-overlay').style.opacity = '0';
+      }
+
+      if (state.upgrades['ember_insurance'] > 0) {
+        document.getElementById('insurance-tag').classList.remove('hidden');
+      } else {
+        document.getElementById('insurance-tag').classList.add('hidden');
+      }
+    }
+
+    function triggerQuizModal() {
+      state.isQuizActive = true;
+      state.quizStep = 0;
+      const curPlanet = PLANETS[state.currentPlanetIdx];
+      document.getElementById('quiz-planet-emoji').innerText = curPlanet.emoji;
+      document.getElementById('quiz-modal-title').innerText = `${curPlanet.name} 관문 퀴즈`;
+      renderQuizQuestion();
+      document.getElementById('quiz-modal').classList.remove('hidden');
+    }
+
+    function renderQuizQuestion() {
+      const qList = QUIZ_DATA[state.currentPlanetIdx] || QUIZ_DATA[0];
+      const qObj = qList[state.quizStep];
+
+      document.getElementById('quiz-step-indicator').innerText = `문제 ${state.quizStep + 1} / 3`;
+      document.getElementById('quiz-question-text').innerText = qObj.q;
+
+      const optsContainer = document.getElementById('quiz-options-container');
+      optsContainer.innerHTML = '';
+
+      qObj.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full p-2.5 sm:p-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-left text-xs font-semibold transition text-slate-200 flex items-center justify-between active:scale-[0.98]';
+        btn.innerHTML = `<span>${idx + 1}. ${optText}</span><i class="fa-solid fa-chevron-right text-slate-500"></i>`;
+        btn.onclick = () => answerQuiz(idx === qObj.a);
+        optsContainer.appendChild(btn);
+      });
+    }
+
+    function answerQuiz(isCorrect) {
+      if (isCorrect) {
+        sound.playPop();
+        state.quizStep++;
+        if (state.quizStep >= 3) {
+          state.isQuizActive = false;
+          document.getElementById('quiz-modal').classList.add('hidden');
+
+          if (state.currentPlanetIdx < PLANETS.length - 1) {
+            state.currentPlanetIdx++;
+            state.targetHeat = PLANETS[state.currentPlanetIdx].heatGoal;
+            state.heat = 30;
+            showBanner(`🎉 정답! 다음 단계 [${PLANETS[state.currentPlanetIdx].name}]에 도달했습니다!`, 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black');
+            triggerFireworksDisplay();
+          } else {
+            showBanner('✨ 축하합니다! 관측 가능한 우주의 끝까지 탐사를 완료했습니다!', 'bg-pink-600 text-white font-black');
+          }
+        } else {
+          renderQuizQuestion();
+        }
+      } else {
+        sound.playSizzle();
+        state.quizStep = 0;
+        state.isQuizActive = false;
+        document.getElementById('quiz-modal').classList.add('hidden');
+
+        // Reset stage back to Stage 1 (Mercury)
+        state.currentPlanetIdx = 0;
+        state.targetHeat = PLANETS[0].heatGoal;
+        state.heat = 30;
+
+        showBanner('💥 퀴즈 오답! 탐사선 항법 장치 오류로 [STAGE 1 수성]부터 다시 출발합니다!', 'bg-rose-600 text-white font-black animate-bounce');
+      }
+    }
+
+    function triggerFireworksDisplay() {
+      const bonfireX = canvas.width / 2;
+      const bonfireY = canvas.height * 0.4;
+      for (let i = 0; i < 50; i++) {
+        fireworks.push(new FireworkParticle(bonfireX, bonfireY));
+      }
+    }
+
+    /* Drag & Touch Interactions for Mobile and Desktop */
+    function attachTouchDragToCard(card, typeKey) {
+      let ghostEl = null;
+      let isDragging = false;
+      let startX = 0, startY = 0;
+
+      card.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        sound.init();
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        isDragging = false;
+        delete card.dataset.touchDragging;
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const dist = Math.hypot(touch.clientX - startX, touch.clientY - startY);
+
+        if (dist > 8 && !isDragging) {
+          isDragging = true;
+          card.dataset.touchDragging = "true";
+
+          // Create floating drag preview element
+          ghostEl = card.cloneNode(true);
+          ghostEl.classList.add('drag-ghost');
+          ghostEl.style.width = `${card.offsetWidth}px`;
+          document.body.appendChild(ghostEl);
+        }
+
+        if (isDragging && ghostEl) {
+          e.preventDefault();
+          ghostEl.style.left = `${touch.clientX}px`;
+          ghostEl.style.top = `${touch.clientY}px`;
+        }
+      }, { passive: false });
+
+      card.addEventListener('touchend', (e) => {
+        if (ghostEl) {
+          ghostEl.remove();
+          ghostEl = null;
+        }
+
+        if (isDragging) {
+          const touch = e.changedTouches[0];
+          const canvasRect = canvas.getBoundingClientRect();
+
+          // Check if released over canvas bounds
+          if (
+            touch.clientX >= canvasRect.left &&
+            touch.clientX <= canvasRect.right &&
+            touch.clientY >= canvasRect.top &&
+            touch.clientY <= canvasRect.bottom
+          ) {
+            const dropX = touch.clientX - canvasRect.left;
+            dropFuelAt(typeKey, dropX);
+          }
+
+          setTimeout(() => {
+            delete card.dataset.touchDragging;
+          }, 100);
+        }
+      });
+    }
+
+    const canvasContainer = document.getElementById('canvas-container');
+
+    canvasContainer.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+
+    canvasContainer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const typeKey = e.dataTransfer.getData('text/plain');
+      if (typeKey && state.unlockedFuels[typeKey]) {
+        const rect = canvas.getBoundingClientRect();
+        const dropX = e.clientX - rect.left;
+        dropFuelAt(typeKey, dropX);
+      }
+    });
+
+    function handleCanvasInteraction(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const mx = clientX - rect.left;
+      const my = clientY - rect.top;
+
+      let hitComet = false;
+      for (let i = comets.length - 1; i >= 0; i--) {
+        if (comets[i].isHit(mx, my)) {
+          comets.splice(i, 1);
+          const ext = (state.upgrades['comet_fever_ext'] || 0) * 0.5;
+          state.feverActive = true;
+          state.feverTimer = 5 + ext;
+          showBanner('☄️ 혜성 포획! 피버 타임 (화력 감쇠 정지) 발동!', 'bg-purple-600 text-white font-bold animate-pulse');
+          sound.playPop();
+          hitComet = true;
+          break;
+        }
+      }
+
+      if (!hitComet) {
+        dropFuelAt('leaf', mx);
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      handleCanvasInteraction(e.clientX, e.clientY);
+    });
+
+    // Touch tap support for canvas
+    let touchStartTime = 0;
+    canvas.addEventListener('touchstart', (e) => {
+      sound.init();
+      if (e.touches.length === 1) {
+        touchStartTime = Date.now();
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1 && Date.now() - touchStartTime < 300) {
+        const touch = e.changedTouches[0];
+        handleCanvasInteraction(touch.clientX, touch.clientY);
+      }
+    }, { passive: true });
+
+    document.getElementById('btn-upgrade-tree').addEventListener('click', () => {
+      renderUpgradeTree('fuels');
+      document.getElementById('upgrade-modal').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-close-upgrade').addEventListener('click', () => {
+      document.getElementById('upgrade-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-help').addEventListener('click', () => {
+      document.getElementById('help-modal').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-close-help').addEventListener('click', () => {
+      document.getElementById('help-modal').classList.add('hidden');
+    });
+
+    document.getElementById('btn-restart-game').addEventListener('click', () => {
+      resetFireGame();
+    });
+
+    document.getElementById('btn-sound').addEventListener('click', () => {
+      state.soundEnabled = !state.soundEnabled;
+      const soundIcon = document.getElementById('sound-icon');
+      if (state.soundEnabled) {
+        soundIcon.className = 'fa-solid fa-volume-high text-amber-400';
+      } else {
+        soundIcon.className = 'fa-solid fa-volume-xmark text-slate-500';
+      }
+    });
+
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const targetBtn = e.currentTarget;
+        targetBtn.classList.add('active');
+        const tabCategory = targetBtn.getAttribute('data-tab');
+        renderUpgradeTree(tabCategory);
+      });
+    });
+
+    let isInitialized = false;
+    function initGame() {
+      if (isInitialized) return;
+      isInitialized = true;
+      resizeCanvas();
+      renderFuelCards();
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('load', initGame);
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initGame();
+    }
+  </script>
+</body>
+</html>

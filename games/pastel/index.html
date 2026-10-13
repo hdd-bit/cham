@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>행성들을 맞춰라</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Jua (동글동글한 폰트) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Hearts and Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8);
+        }
+        .text-shadow-glow {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+        /* Heart animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .heart-icon {
+            color: #ff3366;
+            animation: pulse 1.5s infinite;
+        }
+        /* Custom scrollbar for modals */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #4a4e69; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="game-container" class="relative w-full h-full text-white">
+        <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-50">
+        <h1 class="text-7xl md:text-9xl mb-12 text-shadow-glow text-yellow-300 tracking-wider">행성들을 맞춰라</h1>
+        <p class="text-2xl md:text-4xl mb-8 text-gray-300">2인용 우주 슈팅 게임 (P1: A/D 키, P2: ⬅️/➡️ 키)</p>
+        <button id="startBtn" class="text-4xl md:text-5xl px-10 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full border-4 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.8)] transition transform hover:scale-110">
+                게임 시작!
+            </button>
+        </div>
+
+        <!-- Heads Up Display (HUD) -->
+        <div id="hud" class="absolute top-0 w-full p-4 flex justify-between items-start z-40 hidden pointer-events-none">
+            <!-- Top Left: Shop & Moon Pieces -->
+            <div class="flex flex-col gap-3 pointer-events-auto">
+                <button id="shopBtn" class="bg-purple-600 hover:bg-purple-500 border-2 border-purple-400 px-4 py-2 rounded-xl text-3xl shadow-lg flex items-center gap-2 transition hover:scale-105">
+                    <i class="fas fa-store"></i> 상점
+                </button>
+                <div class="bg-gray-800/80 px-4 py-2 rounded-xl text-3xl border border-gray-600 flex items-center gap-2 shadow-lg">
+                    <span class="text-yellow-400 text-2xl">🌙</span> 
+                    <span id="moonPieceCount">0</span>
+                </div>
+            </div>
+
+            <!-- Top Center: Stage Info -->
+            <div class="flex flex-col items-center pointer-events-none">
+                <div id="stageDisplay" class="text-5xl text-yellow-300 text-shadow mb-1">STAGE 1</div>
+            </div>
+
+            <!-- Top Right: Hearts & Time -->
+            <div class="flex flex-col items-end gap-3 pointer-events-none">
+                <div id="timerDisplay" class="text-5xl text-red-400 text-shadow font-bold">30 초</div>
+                <div id="heartsContainer" class="flex gap-1 text-3xl md:text-4xl">
+                    <!-- Hearts injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Modal -->
+        <div id="shopModal" class="absolute inset-0 flex items-center justify-center bg-black/80 z-50 hidden">
+            <div class="bg-gray-900 border-4 border-purple-500 rounded-3xl p-8 max-w-md w-[90%] text-center shadow-[0_0_30px_rgba(168,85,247,0.5)]">
+                <h2 class="text-5xl text-purple-300 mb-6 border-b-2 border-purple-500/50 pb-4">우주 상점</h2>
+                <div class="flex justify-between items-center bg-gray-800 p-4 rounded-xl mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-flask text-4xl text-pink-500"></i>
+                        <div class="text-left">
+                            <div class="text-3xl">체력 회복 물약</div>
+                            <div class="text-xl text-gray-400">하트 1개(생명 2) 회복</div>
+                        </div>
+                    </div>
+                    <button id="buyPotionBtn" class="bg-pink-600 hover:bg-pink-500 px-4 py-2 rounded-lg text-2xl flex flex-col items-center transition">
+                        <span>구매</span>
+                        <span class="text-lg text-yellow-300">🌙 30</span>
+                    </button>
+                </div>
+                <div class="flex justify-between items-center text-3xl mb-8">
+                    <span>내 달의 조각:</span>
+                    <span id="shopMoonCount" class="text-yellow-400">0</span>
+                </div>
+                <button id="closeShopBtn" class="bg-gray-600 hover:bg-gray-500 px-8 py-3 rounded-full text-3xl transition">닫기 (게임으로)</button>
+            </div>
+        </div>
+
+        <!-- Stage Clear Modal -->
+        <div id="stageClearModal" class="absolute inset-0 flex items-center justify-center bg-black/80 z-50 hidden">
+            <div class="bg-blue-900/90 border-4 border-blue-400 rounded-3xl p-10 text-center flex flex-col items-center">
+                <h2 class="text-6xl text-yellow-300 text-shadow-glow mb-4">스테이지 클리어!</h2>
+                <p id="rewardText" class="text-4xl text-white mb-8">달의 조각 <span class="text-yellow-400">50</span>개 획득!</p>
+                <button id="nextStageBtn" class="bg-yellow-500 hover:bg-yellow-400 text-black px-10 py-4 rounded-full text-4xl font-bold shadow-lg transition transform hover:scale-105">
+                    다음 스테이지로
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over / Victory Modal -->
+        <div id="gameOverModal" class="absolute inset-0 flex items-center justify-center bg-black/90 z-50 hidden">
+            <div class="text-center flex flex-col items-center">
+                <h2 id="gameOverTitle" class="text-7xl text-red-500 text-shadow mb-6">게임 오버</h2>
+                <p id="gameOverSub" class="text-4xl text-gray-300 mb-10">행성들에게 당했습니다...</p>
+                <button id="restartBtn" class="bg-white text-black px-10 py-4 rounded-full text-4xl font-bold shadow-lg transition transform hover:scale-105">
+                    처음부터 다시하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const startScreen = document.getElementById('startScreen');
+        const hud = document.getElementById('hud');
+        const startBtn = document.getElementById('startBtn');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const heartsContainer = document.getElementById('heartsContainer');
+        const moonPieceCount = document.getElementById('moonPieceCount');
+        const stageDisplay = document.getElementById('stageDisplay');
+        
+        // Modals
+        const shopBtn = document.getElementById('shopBtn');
+        const shopModal = document.getElementById('shopModal');
+        const closeShopBtn = document.getElementById('closeShopBtn');
+        const buyPotionBtn = document.getElementById('buyPotionBtn');
+        const shopMoonCount = document.getElementById('shopMoonCount');
+        
+        const stageClearModal = document.getElementById('stageClearModal');
+        const rewardText = document.getElementById('rewardText');
+        const nextStageBtn = document.getElementById('nextStageBtn');
+        
+        const gameOverModal = document.getElementById('gameOverModal');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const gameOverSub = document.getElementById('gameOverSub');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Game Configuration
+        const MAX_HP = 10; // 5 Hearts * 2
+        let currentHp = MAX_HP;
+        let moonPieces = 0;
+        let currentStage = 1;
+        let gameTimeLeft = 30;
+        let isPlaying = false;
+        let isPaused = false;
+        let lastTime = 0;
+        
+        // Stage Data
+        const stageData = [
+            { time: 30, enemyHp: 3, reward: 50, spawnRate: 1500, enemySpeed: 1.0 },
+            { time: 60, enemyHp: 4, reward: 70, spawnRate: 1200, enemySpeed: 1.2 },
+            { time: 90, enemyHp: 5, reward: 100, spawnRate: 1000, enemySpeed: 1.5 },
+            { time: 120, enemyHp: 6, reward: 130, spawnRate: 800, enemySpeed: 1.8 },
+            { time: 150, enemyHp: 7, reward: 150, spawnRate: 600, enemySpeed: 2.2 }
+        ];
+
+        // Planet Types (크기 축소)
+        const planets = [
+            { name: '수성', color: '#9e9e9e', size: 14 },
+            { name: '금성', color: '#ffb74d', size: 20 },
+            { name: '지구', color: '#4fc3f7', size: 24 },
+            { name: '화성', color: '#e57373', size: 18 },
+            { name: '목성', color: '#d7ccc8', size: 36 },
+            { name: '토성', color: '#fff59d', size: 32, hasRing: true },
+            { name: '천왕성', color: '#b2ebf2', size: 26 },
+            { name: '해왕성', color: '#3949ab', size: 26 }
+        ];
+
+        // Input Tracking
+        const keys = { a: false, d: false, ArrowLeft: false, ArrowRight: false };
+
+        // Game Objects Arrays
+        let players = [];
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let stars = [];
+        let lastSpawnTime = 0;
+        let secondTimer = 0;
+
+        class Player {
+            constructor(x, y, isAstronaut) {
+                this.x = x;
+                this.y = y;
+                this.isAstronaut = isAstronaut; // true: P1(Astronaut), false: P2(Robot)
+                this.width = isAstronaut ? 40 : 35;
+                this.height = isAstronaut ? 60 : 40;
+                this.speed = 500; // pixels per second (400에서 500으로 속도 증가)
+                this.fireTimer = 0;
+                this.fireRate = 0.4; // seconds per bullet (0.2에서 0.4로 늦춤)
+                this.aimAngle = -Math.PI / 2; // 총구 방향
+            }
+
+            update(dt) {
+                // Movement
+                if (this.isAstronaut) {
+                    if (keys.a) this.x -= this.speed * dt;
+                    if (keys.d) this.x += this.speed * dt;
+                } else {
+                    if (keys.ArrowLeft) this.x -= this.speed * dt;
+                    if (keys.ArrowRight) this.x += this.speed * dt;
+                }
+
+                // Screen bounds
+                this.x = Math.max(this.width/2, Math.min(canvas.width - this.width/2, this.x));
+
+                // 가장 가까운 행성 찾기 (자동 조준)
+                let closestEnemy = null;
+                let minDist = Infinity;
+                for (let e of enemies) {
+                    if (!e.active) continue;
+                    let d = Math.hypot(e.x - this.x, e.y - this.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        closestEnemy = e;
+                    }
+                }
+
+                if (closestEnemy) {
+                    // 총이 행성을 향하도록 각도 계산
+                    this.aimAngle = Math.atan2(closestEnemy.y - (this.y - 10), closestEnemy.x - this.x);
+                } else {
+                    this.aimAngle = -Math.PI / 2; // 행성이 없으면 위로
+                }
+
+                // Auto Fire
+                this.fireTimer += dt;
+                if (this.fireTimer >= this.fireRate) {
+                    this.fireTimer = 0;
+                    
+                    // 총구 끝 위치 계산
+                    const gunTipX = this.x + Math.cos(this.aimAngle) * 35;
+                    const gunTipY = (this.y - 10) + Math.sin(this.aimAngle) * 35;
+                    
+                    if(this.isAstronaut) {
+                        // 스피드를 양수로 변경하여 해당 각도로 날아가게 함
+                        bullets.push(new Bullet(gunTipX, gunTipY, 800, '#ffd700', this.aimAngle));
+                    } else {
+                        bullets.push(new Bullet(gunTipX, gunTipY, 800, '#00ffff', this.aimAngle));
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                if (this.isAstronaut) {
+                    // Draw Astronaut (Player 1)
+                    ctx.fillStyle = '#ffffff'; // Body
+                    ctx.beginPath();
+                    ctx.roundRect(-20, -30, 40, 60, 10);
+                    ctx.fill();
+                    
+                    // Backpack
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.beginPath();
+                    ctx.roundRect(-25, -20, 50, 40, 5);
+                    ctx.fill();
+
+                    // Visor
+                    ctx.fillStyle = '#2196f3';
+                    ctx.beginPath();
+                    ctx.roundRect(-15, -25, 30, 20, 8);
+                    ctx.fill();
+                    
+                    // Visor Reflection
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.beginPath();
+                    ctx.arc(-5, -20, 3, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // 길쭉하고 예쁜 평범한 총 (회전 적용)
+                    ctx.save();
+                    ctx.translate(0, -10); // 총을 드는 위치 (가슴)
+                    ctx.rotate(this.aimAngle + Math.PI/2); // 적을 향해 회전
+                    
+                    ctx.fillStyle = '#222'; // 총 개머리판/몸통
+                    ctx.beginPath();
+                    ctx.roundRect(-4, -5, 8, 15, 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#555'; // 길쭉하고 얇은 총신
+                    ctx.fillRect(-2, -35, 4, 30);
+                    ctx.fillStyle = '#ff8800'; // 발사구 빛
+                    ctx.beginPath();
+                    ctx.arc(0, -35, 2, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                    
+                    // Player Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '20px "Jua"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('P1', 0, 45);
+                } else {
+                    // Draw Robot/Drone (Player 2)
+                    ctx.fillStyle = '#78909c'; // Body
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 20, Math.PI, 0); // Dome
+                    ctx.fill();
+                    ctx.fillRect(-20, 0, 40, 15);
+                    
+                    // Eye
+                    ctx.fillStyle = '#ff1744';
+                    ctx.beginPath();
+                    ctx.arc(0, -5, 6, 0, Math.PI*2);
+                    ctx.fill();
+
+                    // 길쭉하고 예쁜 평범한 총 (회전 적용)
+                    ctx.save();
+                    ctx.translate(0, -10);
+                    ctx.rotate(this.aimAngle + Math.PI/2);
+                    
+                    ctx.fillStyle = '#222'; // 총 몸통
+                    ctx.beginPath();
+                    ctx.roundRect(-5, -5, 10, 15, 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#777'; // 길쭉한 총신
+                    ctx.fillRect(-2.5, -40, 5, 35);
+                    ctx.fillStyle = '#00ffff'; // 발사구 빛
+                    ctx.beginPath();
+                    ctx.arc(0, -40, 2, 0, Math.PI*2);
+                    ctx.fill();
+
+                    ctx.restore();
+
+                    // Hover effect (jets)
+                    ctx.fillStyle = '#ff9800';
+                    ctx.beginPath();
+                    ctx.moveTo(-10, 15);
+                    ctx.lineTo(-5, 25 + Math.random()*5);
+                    ctx.lineTo(0, 15);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(10, 15);
+                    ctx.lineTo(5, 25 + Math.random()*5);
+                    ctx.lineTo(0, 15);
+                    ctx.fill();
+                    
+                     // Player Label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '20px "Jua"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('P2', 0, 40);
+                }
+                ctx.restore();
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, speed, color, angle = -Math.PI/2) {
+                this.x = x;
+                this.y = y;
+                this.speed = speed;
+                this.color = color;
+                this.angle = angle;
+                this.radius = 4;
+                this.active = true;
+            }
+            update(dt) {
+                this.x += Math.cos(this.angle) * this.speed * dt;
+                this.y += Math.sin(this.angle) * this.speed * dt;
+                if (this.y < -50 || this.y > canvas.height + 50 || this.x < -50 || this.x > canvas.width + 50) this.active = false;
+            }
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class Enemy {
+            constructor(stageData) {
+                const planetData = planets[Math.floor(Math.random() * planets.length)];
+                this.name = planetData.name;
+                this.color = planetData.color;
+                this.radius = planetData.size;
+                this.hasRing = planetData.hasRing;
+                
+                this.x = Math.random() * (canvas.width - this.radius*2) + this.radius;
+                this.y = -this.radius - 20;
+                
+                this.maxHp = stageData.enemyHp;
+                this.hp = this.maxHp;
+                // 행성들이 조금 더 빠르게 내려오도록 속도 상향
+                this.speed = (50 + Math.random() * 30) * stageData.enemySpeed; 
+                this.active = true;
+                
+                // Target player (randomly pick P1 or P2 to chase slightly)
+                this.target = Math.random() > 0.5 ? 0 : 1;
+                this.animTime = Math.random() * 100;
+            }
+            
+            update(dt) {
+                // 걷는 속도(다리 움직임 애니메이션)도 느린 속도에 맞춤
+                this.animTime += dt * 4;
+                this.y += this.speed * dt;
+                
+                // Slight drift towards a player
+                if (players[this.target]) {
+                    const tx = players[this.target].x;
+                    if (this.x < tx - 20) this.x += this.speed * 0.3 * dt;
+                    if (this.x > tx + 20) this.x -= this.speed * 0.3 * dt;
+                }
+
+                if (this.y > canvas.height + this.radius) {
+                    this.active = false;
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Stick Arms and Legs (Black lines)
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                
+                // Legs animating (running)
+                const legSwing = Math.sin(this.animTime) * 15;
+                ctx.beginPath();
+                ctx.moveTo(-10, this.radius - 5);
+                ctx.lineTo(-10 + legSwing, this.radius + 20);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(10, this.radius - 5);
+                ctx.lineTo(10 - legSwing, this.radius + 20);
+                ctx.stroke();
+
+                // Arms
+                ctx.beginPath();
+                ctx.moveTo(-this.radius, 0);
+                ctx.lineTo(-this.radius - 15, -legSwing);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(this.radius, 0);
+                ctx.lineTo(this.radius + 15, legSwing);
+                ctx.stroke();
+
+                // Saturn Ring
+                if (this.hasRing) {
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, this.radius + 15, this.radius / 3, Math.PI / 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#fff8e1';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+
+                // Planet Body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI*2);
+                ctx.fill();
+
+                // Cute Face
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-8, -5, 4, 0, Math.PI*2);
+                ctx.arc(8, -5, 4, 0, Math.PI*2);
+                ctx.fill();
+                // Eye shines
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(-9, -6, 1.5, 0, Math.PI*2);
+                ctx.arc(7, -6, 1.5, 0, Math.PI*2);
+                ctx.fill();
+                // Mouth
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 5, 4, 0, Math.PI, false);
+                ctx.stroke();
+
+                // Name tag
+                ctx.fillStyle = '#fff';
+                ctx.font = '16px "Jua"';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.name, 0, -this.radius - 5);
+
+                // HP Bar
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(-15, this.radius + 25, 30, 4);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(-15, this.radius + 25, 30 * (this.hp / this.maxHp), 4);
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 200 + 50;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1.0;
+            }
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= dt * 2;
+            }
+            draw(ctx) {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 3, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Generate Stars
+            stars = [];
+            for(let i=0; i<150; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 20 + 10
+                });
+            }
+        }
+        window.addEventListener('resize', resize);
+
+        function updateHearts() {
+            heartsContainer.innerHTML = '';
+            // 1 Heart = 2 HP
+            for (let i = 0; i < 5; i++) {
+                const heartVal = currentHp - (i * 2);
+                if (heartVal >= 2) {
+                    heartsContainer.innerHTML += `<i class="fas fa-heart heart-icon"></i>`;
+                } else if (heartVal === 1) {
+                    heartsContainer.innerHTML += `<i class="fas fa-star-half-alt text-pink-500"></i>`; // Fallback for half heart visually matching
+                } else {
+                    heartsContainer.innerHTML += `<i class="far fa-heart text-gray-500"></i>`;
+                }
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            // 한글 키보드(ㅁ, ㅇ) 상태에서도 P1(A, D)이 움직일 수 있도록 추가
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ㅁ') keys.a = true;
+            if (e.key === 'd' || e.key === 'D' || e.key === 'ㅇ') keys.d = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            // 한글 키보드(ㅁ, ㅇ) 상태에서도 P1(A, D)이 멈출 수 있도록 추가
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ㅁ') keys.a = false;
+            if (e.key === 'd' || e.key === 'D' || e.key === 'ㅇ') keys.d = false;
+        });
+
+        // Setup Buttons
+        startBtn.addEventListener('click', initGame);
+        restartBtn.addEventListener('click', initGame);
+        nextStageBtn.addEventListener('click', startNextStage);
+        
+        shopBtn.addEventListener('click', () => {
+            isPaused = true;
+            shopMoonCount.textContent = moonPieces;
+            shopModal.classList.remove('hidden');
+        });
+        closeShopBtn.addEventListener('click', () => {
+            shopModal.classList.add('hidden');
+            isPaused = false;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        });
+        buyPotionBtn.addEventListener('click', () => {
+            if (moonPieces >= 30) {
+                if (currentHp >= MAX_HP) {
+                    alert("체력이 이미 가득 찼습니다!");
+                    return;
+                }
+                moonPieces -= 30;
+                currentHp = Math.min(MAX_HP, currentHp + 2); // Heal 1 Heart (2 HP)
+                moonPieceCount.textContent = moonPieces;
+                shopMoonCount.textContent = moonPieces;
+                updateHearts();
+                
+                // Visual feedback
+                buyPotionBtn.classList.add('bg-green-500');
+                setTimeout(() => buyPotionBtn.classList.remove('bg-green-500'), 200);
+            } else {
+                // Not enough
+                buyPotionBtn.classList.add('bg-red-500', 'shake');
+                setTimeout(() => buyPotionBtn.classList.remove('bg-red-500', 'shake'), 200);
+            }
+        });
+
+        function initGame() {
+            resize();
+            currentHp = MAX_HP;
+            moonPieces = 0;
+            currentStage = 1;
+            
+            startScreen.classList.add('hidden');
+            gameOverModal.classList.add('hidden');
+            stageClearModal.classList.add('hidden');
+            hud.classList.remove('hidden');
+            
+            resetStage();
+            
+            isPlaying = true;
+            isPaused = false;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetStage() {
+            const data = stageData[currentStage - 1];
+            gameTimeLeft = data.time;
+            
+            players = [
+                new Player(canvas.width / 3, canvas.height - 80, true),  // P1 Astronaut
+                new Player(canvas.width * 2/3, canvas.height - 80, false) // P2 Robot
+            ];
+            bullets = [];
+            enemies = [];
+            particles = [];
+            
+            moonPieceCount.textContent = moonPieces;
+            stageDisplay.textContent = `STAGE ${currentStage}`;
+            timerDisplay.textContent = `${Math.ceil(gameTimeLeft)} 초`;
+            updateHearts();
+        }
+
+        function startNextStage() {
+            currentStage++;
+            stageClearModal.classList.add('hidden');
+            resetStage();
+            isPaused = false;
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnEnemy(timeNow) {
+            const data = stageData[currentStage - 1];
+            if (timeNow - lastSpawnTime > data.spawnRate) {
+                enemies.push(new Enemy(data));
+                lastSpawnTime = timeNow;
+            }
+        }
+
+        function checkCollisions() {
+            // Bullet vs Enemy
+            for (let b of bullets) {
+                if (!b.active) continue;
+                for (let e of enemies) {
+                    if (!e.active) continue;
+                    
+                    const dist = Math.hypot(b.x - e.x, b.y - e.y);
+                    if (dist < e.radius + b.radius) {
+                        b.active = false;
+                        e.hp--;
+                        
+                        // Spawn particles
+                        for(let i=0; i<5; i++) particles.push(new Particle(b.x, b.y, e.color));
+                        
+                        if (e.hp <= 0) {
+                            e.active = false;
+                            for(let i=0; i<20; i++) particles.push(new Particle(e.x, e.y, e.color));
+                        }
+                        break; // Bullet used
+                    }
+                }
+            }
+
+            // Enemy vs Player
+            for (let e of enemies) {
+                if (!e.active) continue;
+                for (let p of players) {
+                    // Approximate player as a circle for easy collision
+                    const pRadius = 25; 
+                    const dist = Math.hypot(e.x - p.x, e.y - p.y);
+                    
+                    if (dist < e.radius + pRadius) {
+                        e.active = false;
+                        currentHp -= 1; // Half heart
+                        updateHearts();
+                        
+                        // Particle effect for getting hit
+                        for(let i=0; i<30; i++) particles.push(new Particle(p.x, p.y, '#ff0000'));
+                        
+                        if (currentHp <= 0) {
+                            gameOver(false);
+                        }
+                    }
+                }
+            }
+        }
+
+        function gameOver(isWin) {
+            isPlaying = false;
+            if (isWin) {
+                gameOverTitle.textContent = "우주 평화 달성!";
+                gameOverTitle.className = "text-7xl text-blue-400 text-shadow-glow mb-6";
+                gameOverSub.textContent = `모든 스테이지 클리어! 달의 조각: ${moonPieces}`;
+            } else {
+                gameOverTitle.textContent = "게임 오버";
+                gameOverTitle.className = "text-7xl text-red-500 text-shadow mb-6";
+                gameOverSub.textContent = "행성들에게 부딪혔습니다...";
+            }
+            hud.classList.add('hidden');
+            gameOverModal.classList.remove('hidden');
+        }
+
+        function stageClear() {
+            isPaused = true;
+            const data = stageData[currentStage - 1];
+            moonPieces += data.reward;
+            moonPieceCount.textContent = moonPieces;
+            
+            if (currentStage >= 5) {
+                gameOver(true); // Win Game
+            } else {
+                rewardText.innerHTML = `달의 조각 <span class="text-yellow-400">${data.reward}</span>개 획득!`;
+                stageClearModal.classList.remove('hidden');
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!isPlaying || isPaused) return;
+
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            // Clear Canvas
+            ctx.fillStyle = '#000011';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Stars
+            ctx.fillStyle = '#ffffff';
+            for (let s of stars) {
+                s.y += s.speed * dt;
+                if (s.y > canvas.height) s.y = 0;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Update & Draw Players
+            for (let p of players) {
+                p.update(dt);
+                p.draw(ctx);
+            }
+
+            // Spawner
+            spawnEnemy(timestamp);
+
+            // Update & Draw Enemies
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                e.update(dt);
+                e.draw(ctx);
+                if (!e.active) enemies.splice(i, 1);
+            }
+
+            // Update & Draw Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.update(dt);
+                b.draw(ctx);
+                if (!b.active) bullets.splice(i, 1);
+            }
+
+            // Update & Draw Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update(dt);
+                p.draw(ctx);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            checkCollisions();
+
+            // Timer Logic
+            secondTimer += dt;
+            if (secondTimer >= 1.0) {
+                gameTimeLeft -= 1;
+                secondTimer = 0;
+                timerDisplay.textContent = `${Math.max(0, gameTimeLeft)} 초`;
+                
+                // Color changing for low time
+                if(gameTimeLeft <= 10) timerDisplay.className = "text-5xl text-red-500 text-shadow font-bold animate-pulse";
+                else timerDisplay.className = "text-5xl text-blue-300 text-shadow font-bold";
+
+                if (gameTimeLeft <= 0) {
+                    stageClear();
+                }
+            }
+
+            if (isPlaying && !isPaused) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Add CSS animation dynamically for shake
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+            .shake { animation: shake 0.2s ease-in-out; }
+        `;
+        document.head.appendChild(style);
+
+        // Initial Resize Call
+        resize();
+    </script>
+</body>
+</html>
