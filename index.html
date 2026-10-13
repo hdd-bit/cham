@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>우리 반 우주 게임방</title>
+<title>챔피언반 바이브 게임방</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
   :root { --ink:#f1f5ff; --muted:#a5b0d6; --card:rgba(255,255,255,.07); --line:rgba(255,255,255,.14); --accent:#ffb347; }
@@ -35,6 +35,7 @@
   .emoji { font-size:50px; line-height:1; }
   .name { font-size:24px; margin:12px 0 6px; }
   .how { color:var(--muted); font-size:15px; line-height:1.4; }
+  .maker { margin-top:8px; font-size:15px; color:#ffd89a; }
   .tag { align-self:flex-start; margin-top:12px; font-size:13px; padding:3px 10px; border-radius:99px;
          background:rgba(255,179,71,.15); color:var(--accent); }
   footer { position:relative; text-align:center; color:var(--muted); font-size:14px; padding:0 16px 32px; }
@@ -42,11 +43,18 @@
 </head>
 <body>
 <header>
-  <h1>🚀 우리 반 우주 게임방</h1>
+  <h1>🏆 챔피언반 바이브 게임방</h1>
   <p>우리가 직접 만든 게임들이에요. 눌러서 놀아 보세요!</p>
 </header>
 <main>
   <!-- 새 게임 추가: games/폴더이름/index.html 로 넣고, 아래 카드 하나를 복사해서 주소(href)·이모지·이름·설명만 바꾸면 돼요 -->
+  <a class="card" href="https://game.shamoos.com/">
+    <div class="emoji">⚾</div>
+    <div class="name">Korea Baseball Manager</div>
+    <div class="how">내가 감독이 되어 야구팀을 이끌어요</div>
+    <div class="maker">✏️ 김광훈 학생 제작</div>
+    <span class="tag">🖱️ 클릭 · 👆 터치</span>
+  </a>
   <a class="card" href="games/cham/">
     <div class="emoji">🪐</div>
     <div class="name">우주 행성 합치기 탐험대</div>
@@ -87,6 +95,7 @@
     <div class="emoji">🎪</div>
     <div class="name">줄 곡예사 챔피언 챔명이</div>
     <div class="how">줄 위에서 점프! 떨어지지 않게 버텨요</div>
+    <div class="maker">✏️ 김지유 학생 제작</div>
     <span class="tag">⌨️ 스페이스바 · 👆 터치</span>
   </a>
 </main>
