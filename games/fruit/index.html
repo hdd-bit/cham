@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Jumper Shooter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f8bbd0; /* 전체 핑크색 배경 */
+            overflow: hidden; /* 스크롤바 숨김 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            user-select: none; /* 드래그 방지 */
+        }
+        canvas {
+            background-color: #fce4ec; /* 캔버스 안쪽 연한 핑크 배경 */
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border-radius: 10px;
+            cursor: crosshair; /* 조준점 커서 */
+            max-width: 100vw; max-height: 100vh; /* 작은 화면에서도 잘리지 않게 */
+            width: auto; height: auto;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 2px 2px 0px white;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 3px solid #ffca28;
+        }
+        #gameOverScreen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 28px;
+            cursor: pointer;
+            background-color: #ffca28;
+            border: 3px solid #ff8f00;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #d84315;
+            margin-top: 20px;
+            box-shadow: 0 6px 0 #ff8f00;
+            transition: all 0.1s;
+        }
+        button:active {
+            transform: translateY(6px);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        생명: <span id="livesText" style="color: #d50000;">❤️❤️❤️</span><br>
+        과일 명중: <span id="scoreText" style="color: #e65100; font-size: 36px;">0</span>개
+    </div>
+    <canvas id="gameCanvas" width="1000" height="800"></canvas>
+    
+    <div id="gameOverScreen">
+        <h1 style="font-size: 56px; margin-bottom: 10px; color: #ff5252; text-shadow: 3px 3px 0 #b71c1c;">게임 오버!</h1>
+        <h2 style="margin-bottom: 30px; font-size: 32px;">총 <span id="finalScore" style="color:#ffca28; font-size:48px;">0</span>개의 과일을 맞췄습니다!</h2>
+        <button onclick="resetGame()">다시 하기 (Restart)</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreText = document.getElementById('scoreText');
+        const livesText = document.getElementById('livesText');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreText = document.getElementById('finalScore');
+
+        // 게임 변수들
+        let score = 0;
+        let lives = 3;
+        let gameOver = false;
+        const scrollSpeed = 1.5; // 요구하신 약간 빠른 스크롤 속도
+        let frames = 0;
+
+        // 하트(생명) 표시 업데이트 함수
+        function updateLivesDisplay() {
+            let heartStr = '';
+            for(let i=0; i<lives; i++) heartStr += '❤️';
+            if(lives <= 0) heartStr = '💔'; // 생명이 없으면 깨진 하트
+            livesText.innerText = heartStr;
+        }
+
+        // 플레이어 설정
+        const player = {
+            x: 150,
+            y: 550,
+            width: 70, // 덩치 조금 키움
+            height: 80,
+            vy: 0,
+            gravity: 0.6,
+            jumpPower: -12,
+            jumpCount: 0,
+            maxJumps: 8, // 8단 점프!
+            grounded: false
+        };
+
+        // 이미지 로딩
+        const playerImg = new Image();
+        playerImg.src = 'Screenshot 2026-10-14 8.46.56 AM_2.png';
+        let imgLoaded = false;
+        playerImg.onload = () => imgLoaded = true;
+
+        // 이미지가 없을 때 그릴 똑닮은 대체 캐릭터 (따봉하는 왕관 콧수염)
+        function drawFallbackPlayer(x, y, w, h) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // 몸통 (크림색 둥근 형태)
+            ctx.fillStyle = '#f5f0e1';
+            ctx.beginPath();
+            ctx.roundRect(0, 10, w, h - 20, 30);
+            ctx.fill();
+
+            // 다리
+            ctx.beginPath();
+            ctx.arc(w * 0.3, h - 10, 12, 0, Math.PI, false);
+            ctx.arc(w * 0.7, h - 10, 12, 0, Math.PI, false);
+            ctx.fill();
+
+            // 왕관 (금색)
+            ctx.fillStyle = '#fbc02d';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.2, 15);
+            ctx.lineTo(w * 0.3, -5);
+            ctx.lineTo(w * 0.5, 10);
+            ctx.lineTo(w * 0.7, -5);
+            ctx.lineTo(w * 0.8, 15);
+            ctx.closePath();
+            ctx.fill();
+            // 왕관 테두리 그림자 느낌
+            ctx.strokeStyle = '#f57f17';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 눈
+            ctx.fillStyle = '#4e342e';
+            ctx.beginPath();
+            ctx.arc(w * 0.4, h * 0.4, 3, 0, Math.PI * 2);
+            ctx.arc(w * 0.6, h * 0.4, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 콧수염 (매끄러운 갈매기 모양)
+            ctx.strokeStyle = '#4e342e';
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.2, h * 0.5);
+            ctx.quadraticCurveTo(w * 0.4, h * 0.6, w * 0.5, h * 0.45);
+            ctx.quadraticCurveTo(w * 0.6, h * 0.6, w * 0.8, h * 0.5);
+            ctx.stroke();
+
+            // 양손 (따봉)
+            ctx.fillStyle = '#f5f0e1';
+            // 왼손
+            ctx.beginPath();
+            ctx.arc(-10, h * 0.6, 10, 0, Math.PI * 2);
+            ctx.fill();
+            // 왼손 엄지
+            ctx.beginPath();
+            ctx.arc(-15, h * 0.55, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 오른손
+            ctx.beginPath();
+            ctx.arc(w + 10, h * 0.6, 10, 0, Math.PI * 2);
+            ctx.fill();
+            // 오른손 엄지
+            ctx.beginPath();
+            ctx.arc(w + 15, h * 0.55, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // 배열들
+        let platforms = [];
+        let fruits = [];
+        let projectiles = [];
+
+        // 마우스 위치 추적용 변수 (키보드로 총 쏠 때 방향 기준점)
+        let currentMouseX = 400;
+        let currentMouseY = 300;
+
+        const fruitEmojis = ['🍎', '🍌', '🍇', '🍉', '🍓', '🍒', '🍍', '🍑'];
+
+        class Platform {
+            constructor(x, y, width) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = 25;
+            }
+            draw() {
+                // 발판 입체감 있게 그리기
+                ctx.fillStyle = '#8bc34a'; // 잔디색
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = '#558b2f'; // 흙색
+                ctx.fillRect(this.x, this.y + 8, this.width, this.height - 8);
+                // 모서리 둥글게 (간단한 트릭)
+                ctx.fillStyle = '#8bc34a';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + 4, 4, 0, Math.PI*2);
+                ctx.arc(this.x + this.width, this.y + 4, 4, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        class Fruit {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.startY = y;
+                this.emoji = fruitEmojis[Math.floor(Math.random() * fruitEmojis.length)];
+                this.size = 70; // 과일 크기 더 키움
+                this.radius = 30; // 충돌 판정용 반지름
+            }
+            update() {
+                this.x -= (scrollSpeed + 1.2); // 과일이 화면보다 조금 더 빠르게 다가옴
+                this.y = this.startY + Math.sin(frames * 0.15 + this.x * 0.05) * 50; // 위아래로 더 빠르고 크게 움직임
+            }
+            draw() {
+                ctx.font = this.size + 'px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, this.x, this.y);
+            }
+        }
+
+        // 마우스 위치 지속 추적 (키보드로 쏠 때 방향을 알기 위해)
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            currentMouseX = (e.clientX - rect.left) * canvas.width / rect.width;
+            currentMouseY = (e.clientY - rect.top) * canvas.height / rect.height;
+        });
+
+        // 총 쏘기 함수 (마우스나 키보드 입력 시 공통 사용)
+        function fireProjectile(targetX, targetY) {
+            if (gameOver) return;
+            const startX = player.x + player.width / 2;
+            const startY = player.y + player.height / 2;
+            const angle = Math.atan2(targetY - startY, targetX - startX);
+            
+            projectiles.push({
+                x: startX,
+                y: startY,
+                vx: Math.cos(angle) * 18, // 총알 속도 빠름
+                vy: Math.sin(angle) * 18,
+                radius: 8,
+                color: '#ff1493', // 강렬한 핫핑크 총알
+                trail: [] // 꼬리 효과용
+            });
+        }
+
+        // 총 쏘기 (마우스 클릭)
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameOver) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * canvas.width / rect.width;
+            const mouseY = (e.clientY - rect.top) * canvas.height / rect.height;
+            fireProjectile(mouseX, mouseY);
+        });
+
+        // 점프 (스페이스바) 및 총 쏘기 (Z, X키)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // 스크롤 방지
+                if (gameOver) return;
+
+                // 8단 점프 로직 (자동 점프 없음, 누를 때만)
+                if (player.jumpCount < player.maxJumps) {
+                    player.vy = player.jumpPower;
+                    player.jumpCount++;
+                    player.grounded = false;
+                }
+            }
+            
+            // Z 키나 X 키를 누르면 마우스 커서가 있는 방향으로 총 쏘기
+            if (e.code === 'KeyZ' || e.code === 'KeyX') {
+                fireProjectile(currentMouseX, currentMouseY);
+            }
+        });
+
+        function generateInitialGame() {
+            platforms = [];
+            fruits = [];
+            projectiles = [];
+            score = 0;
+            lives = 3; // 게임 시작 시 생명 초기화
+            scoreText.innerText = score;
+            updateLivesDisplay(); // 하트 UI 초기화
+            gameOver = false;
+            gameOverScreen.style.display = 'none';
+            frames = 0;
+
+            // 플레이어 초기 위치 (하늘을 넓게 쓰기 위해 아래쪽에서 시작)
+            player.y = 550;
+            player.vy = 0;
+            player.jumpCount = 0;
+            
+            // [매우 중요] 시작 발판을 아주 넓게 깔아서 안정적으로 시작
+            platforms.push(new Platform(50, 650, 800));
+            
+            // [매우 중요] 시작하자마자 화면에 과일 3개 무조건 생성!
+            fruits.push(new Fruit(350, 450));
+            fruits.push(new Fruit(500, 380));
+            fruits.push(new Fruit(650, 500));
+
+            // 그 다음 이어질 발판들 생성
+            let lastX = 850;
+            for(let i = 0; i < 5; i++) {
+                addPlatformAndFruit(lastX);
+                // 대략적인 다음 위치 계산 (addPlatformAndFruit 내에서도 하지만 여기선 초기용)
+                lastX += 200 + Math.random() * 150; 
+            }
+        }
+
+        function addPlatformAndFruit(lastX) {
+            let pWidth = 120 + Math.random() * 150;
+            let gap = 100 + Math.random() * 120;
+            let pY = 450 + Math.random() * 250; // 발판이 전체적으로 아래쪽에 생성되도록 수정
+            
+            let newX = lastX + gap;
+            platforms.push(new Platform(newX, pY, pWidth));
+
+            // 과일이 한 번에 여러 개(2~4개)씩 무리 지어 나타남
+            if (Math.random() > 0.1) { 
+                let fruitCount = Math.floor(Math.random() * 3) + 2; 
+                for(let i = 0; i < fruitCount; i++) {
+                    let fruitX = newX + pWidth/2 + (i * 60) - 30;
+                    let fruitY = pY - 80 - Math.random() * 100 - (i * 20);
+                    fruits.push(new Fruit(fruitX, fruitY));
+                }
+            }
+        }
+
+        function update() {
+            if (gameOver) return;
+            frames++;
+
+            // 플레이어 물리 (중력 적용)
+            player.vy += player.gravity;
+            player.y += player.vy;
+            player.grounded = false;
+
+            // 발판 이동 및 충돌
+            for (let i = 0; i < platforms.length; i++) {
+                let p = platforms[i];
+                p.x -= scrollSpeed;
+
+                // 플레이어가 떨어질 때만 발판에 닿게 (밑에서 위로 통과 가능)
+                if (player.vy > 0 && 
+                    player.x < p.x + p.width && 
+                    player.x + player.width > p.x && 
+                    player.y + player.height > p.y && 
+                    player.y + player.height < p.y + p.height + 15) {
+                        player.grounded = true;
+                        player.vy = 0;
+                        player.y = p.y - player.height;
+                        player.jumpCount = 0; // 땅에 닿으면 점프 초기화
+                }
+            }
+
+            // 화면 밖으로 나간 발판 제거 및 새 발판/과일 추가
+            if (platforms.length > 0 && platforms[0].x + platforms[0].width < 0) {
+                platforms.shift();
+            }
+            
+            // 마지막 발판이 화면에 보이기 시작하면 새 발판 추가
+            let lastPlatform = platforms[platforms.length - 1];
+            if (lastPlatform && lastPlatform.x < canvas.width) {
+                addPlatformAndFruit(lastPlatform.x + lastPlatform.width);
+            }
+
+            // 총알 이동 및 과일 충돌 처리
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let bullet = projectiles[i];
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+                
+                // 꼬리 효과 데이터 저장
+                bullet.trail.push({x: bullet.x, y: bullet.y});
+                if(bullet.trail.length > 5) bullet.trail.shift();
+
+                // 화면 밖 총알 제거
+                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+
+                // 과일과 총알 충돌 확인
+                let hit = false;
+                for (let j = fruits.length - 1; j >= 0; j--) {
+                    let fruit = fruits[j];
+                    let dx = bullet.x - fruit.x;
+                    let dy = bullet.y - fruit.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < fruit.radius + bullet.radius) {
+                        // 명중!
+                        fruits.splice(j, 1);
+                        score += 1; // 과일 1개 명중
+                        scoreText.innerText = score;
+                        
+                        // 화면 흔들림 효과 (선택적 구현 가능, 생략)
+                        hit = true;
+                        break; // 총알 하나당 과일 하나
+                    }
+                }
+                
+                if (hit) {
+                    projectiles.splice(i, 1); // 맞춘 총알 삭제
+                }
+            }
+
+            // 과일 이동 및 화면 밖 과일 제거
+            for (let i = fruits.length - 1; i >= 0; i--) {
+                fruits[i].update();
+                if (fruits[i].x < -100) {
+                    fruits.splice(i, 1);
+                }
+            }
+
+            // 게임 오버 및 생명 감소 조건 (화면 아래로 떨어짐)
+            if (player.y > canvas.height) {
+                lives--;
+                updateLivesDisplay();
+                
+                if (lives > 0) {
+                    // 생명이 남아있으면 부활 (하늘 높은 곳에서 다시 생성)
+                    player.y = 100;
+                    player.vy = 0;
+                    player.jumpCount = 0;
+                    
+                    // 플레이어가 안전하게 착지할 수 있는 거대한 구명 발판 즉시 생성!
+                    platforms.push(new Platform(0, 650, 1000));
+                } else {
+                    // 생명이 0이 되면 진짜 게임 오버
+                    gameOver = true;
+                    finalScoreText.innerText = score;
+                    gameOverScreen.style.display = 'flex';
+                }
+            }
+        }
+
+        function draw() {
+            // 배경 지우기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 구름 배경 효과 (하늘이 넓어졌으므로 구름도 크고 넓게)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(300 - (frames*0.2)%1200, 150, 50, 0, Math.PI*2);
+            ctx.arc(350 - (frames*0.2)%1200, 150, 70, 0, Math.PI*2);
+            ctx.arc(400 - (frames*0.2)%1200, 150, 50, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(800 - (frames*0.1)%1200, 250, 40, 0, Math.PI*2);
+            ctx.arc(840 - (frames*0.1)%1200, 250, 60, 0, Math.PI*2);
+            ctx.arc(880 - (frames*0.1)%1200, 250, 40, 0, Math.PI*2);
+            ctx.fill();
+
+            // 발판 그리기
+            platforms.forEach(p => p.draw());
+
+            // 과일 그리기
+            fruits.forEach(f => f.draw());
+
+            // 플레이어 그리기
+            if (imgLoaded) {
+                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            } else {
+                drawFallbackPlayer(player.x, player.y, player.width, player.height);
+            }
+
+            // 총알 그리기
+            projectiles.forEach(b => {
+                // 꼬리 그리기
+                ctx.beginPath();
+                if(b.trail.length > 0) {
+                    ctx.moveTo(b.trail[0].x, b.trail[0].y);
+                    for(let i=1; i<b.trail.length; i++) {
+                        ctx.lineTo(b.trail[i].x, b.trail[i].y);
+                    }
+                }
+                ctx.strokeStyle = 'rgba(255, 20, 147, 0.5)'; // 핫핑크 꼬리 효과
+                ctx.lineWidth = b.radius;
+                ctx.stroke();
+
+                // 머리 그리기
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(b.x - 2, b.y - 2, 2, 0, Math.PI * 2); // 반짝임
+                ctx.fill();
+            });
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            generateInitialGame();
+        }
+
+        // 게임 시작
+        generateInitialGame();
+        gameLoop();
+    </script>
+</body>
+</html>
