@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>애니메이션 스트리트파이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #222; color: white; font-family: 'Inter', sans-serif; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .pointer-events-auto { pointer-events: auto; }
+        
+        .health-bar-container { width: 300px; height: 24px; background: #444; border: 2px solid #fff; border-radius: 12px; overflow: hidden; }
+        .health-bar { height: 100%; transition: width 0.2s ease-out; }
+        .p1-health { background: linear-gradient(90deg, #ff4e50, #f9d423); }
+        .p2-health { background: linear-gradient(90deg, #00c9ff, #92fe9d); transform-origin: right; }
+        
+        .screen-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; pointer-events: auto;}
+        .hidden { display: none !important; }
+        
+        .char-card { border: 4px solid transparent; transition: all 0.2s; cursor: pointer; }
+        .char-card:hover { transform: scale(1.05); }
+        .char-card.selected-p1 { border-color: #ff4e50; background: rgba(255, 78, 80, 0.2); }
+        .char-card.selected-p2 { border-color: #00c9ff; background: rgba(0, 201, 255, 0.2); }
+        .char-card.locked { opacity: 0.5; filter: grayscale(100%); cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer" class="hidden flex flex-col justify-between p-6">
+        <div class="flex justify-between items-start w-full max-w-6xl mx-auto">
+            <div class="flex flex-col gap-2">
+                <div class="text-xl font-bold text-white mb-1 shadow-sm" id="p1-name">1P (WASD + Space)</div>
+                <div class="health-bar-container"><div id="p1-health" class="health-bar p1-health" style="width: 100%"></div></div>
+                <div id="p1-ult" class="text-sm font-bold text-gray-300">⚡ 필살기: 0/3 (왼쪽 Alt)</div>
+            </div>
+            
+            <div class="flex flex-col items-center">
+                <div class="text-3xl font-black text-yellow-400 drop-shadow-lg tracking-widest">VS</div>
+                <div class="text-sm font-bold text-white mt-2 bg-black bg-opacity-50 px-3 py-1 rounded-full">🪙 코인: <span id="coin-display">0</span></div>
+            </div>
+
+            <div class="flex flex-col gap-2 items-end">
+                <div class="text-xl font-bold text-white mb-1 shadow-sm" id="p2-name">2P (방향키 + Enter)</div>
+                <div class="health-bar-container"><div id="p2-health" class="health-bar p2-health" style="width: 100%; float: right;"></div></div>
+                <div id="p2-ult" class="text-sm font-bold text-gray-300 text-right">⚡ 필살기: 0/3 (오른쪽 Alt)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="selection-screen" class="screen-overlay">
+        <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-red-500 to-purple-500 mb-8 drop-shadow-lg">애니메이션 스트리트파이터</h1>
+        <div class="text-white text-xl mb-4">현재 코인: <span id="lobby-coins" class="font-bold text-yellow-400">0</span>🪙</div>
+        
+        <div class="flex gap-12 mb-8 w-full max-w-5xl justify-center">
+            <div class="flex flex-col items-center w-1/3">
+                <h2 class="text-2xl font-bold text-red-400 mb-4">1P 캐릭터 선택</h2>
+                <div id="p1-selection-text" class="h-8 text-lg font-bold text-white">선택 대기중...</div>
+            </div>
+            <div class="flex flex-col items-center w-1/3">
+                <h2 class="text-2xl font-bold text-blue-400 mb-4">2P 캐릭터 선택</h2>
+                <div id="p2-selection-text" class="h-8 text-lg font-bold text-white">선택 대기중...</div>
+            </div>
+        </div>
+
+        <div id="roster" class="grid grid-cols-4 gap-6 max-w-4xl pointer-events-auto">
+            <!-- Characters will be injected here -->
+        </div>
+
+        <button id="start-btn" class="mt-12 px-10 py-4 bg-gray-600 text-gray-300 font-black text-2xl rounded-full cursor-not-allowed transition-all pointer-events-auto" disabled>
+            캐릭터를 선택하세요
+        </button>
+    </div>
+
+    <div id="game-over-screen" class="screen-overlay hidden">
+        <h1 id="winner-text" class="text-7xl font-black text-white mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]"></h1>
+        <p id="reward-text" class="text-2xl text-yellow-400 font-bold mb-10"></p>
+        <button onclick="resetToLobby()" class="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold text-xl rounded-full hover:scale-105 transition-transform pointer-events-auto shadow-lg">
+            캐릭터 선택으로 돌아가기
+        </button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script>
+        const CHARACTERS = {
+            itadori: { name: '이타도리 유지', color: 0xff0055, shirt: 0x880000, pants: 0x111111, hair: 0xffb6c1, ultColor: 0x000000, attackType: 'melee', range: 2.5, damage: 15, cooldown: 400, desc: '근접 타격 (흑섬)', price: 0 },
+            gojo: { name: '고죠 사토루', color: 0x00aaff, shirt: 0x111111, pants: 0x111111, hair: 0xffffff, ultColor: 0x8800ff, attackType: 'ranged', projectileSpeed: 0.6, damage: 12, cooldown: 500, desc: '원거리 (무하한/창)', price: 0 },
+            goku: { name: '손오공', color: 0xff8800, shirt: 0xff6600, pants: 0xff6600, hair: 0x111111, ultColor: 0x00ffff, attackType: 'ranged', projectileSpeed: 0.8, damage: 10, cooldown: 350, desc: '원거리 (기공파/에네르기파)', price: 0 },
+            naruto: { name: '나루토', color: 0xffff00, shirt: 0xffaa00, pants: 0xffaa00, hair: 0xffff00, ultColor: 0x0088ff, attackType: 'ranged', projectileSpeed: 0.7, damage: 12, cooldown: 400, desc: '원거리 (수리켄/나선환)', price: 0 },
+            luffy: { name: '루피', color: 0xff2222, shirt: 0xff0000, pants: 0x0000ff, hair: 0x111111, ultColor: 0xff4500, attackType: 'melee', range: 3.5, damage: 14, cooldown: 450, desc: '중거리 (고무고무/레드호크)', price: 0 },
+            tanjiro: { name: '탄지로', color: 0x00ff88, shirt: 0x00aa55, pants: 0x221111, hair: 0x441111, ultColor: 0x0055ff, attackType: 'melee', range: 3.0, damage: 16, cooldown: 400, desc: '근접 (물/해의 호흡)', price: 0 },
+            sukuna: { name: '스쿠나', color: 0xaa0000, shirt: 0xeeeeee, pants: 0xeeeeee, hair: 0xffb6c1, ultColor: 0xff0000, attackType: 'melee', range: 3.0, damage: 18, cooldown: 350, desc: '근접 (참격/복마어주자)', price: 50 },
+            megumi: { name: '메구미', color: 0x228B22, shirt: 0x111133, pants: 0x111133, hair: 0x111122, ultColor: 0x000000, attackType: 'ranged', projectileSpeed: 0.5, damage: 15, cooldown: 600, desc: '원거리 (식신 옥견)', price: 50 }
+        };
+
+        let myCoins = 0;
+        let unlockedChars = ['itadori', 'gojo', 'goku', 'naruto', 'luffy', 'tanjiro'];
+        let selectedP1 = null;
+        let selectedP2 = null;
+
+        const container = document.getElementById('game-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        scene.fog = new THREE.Fog(0x1a1a2e, 20, 60);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 25, 20);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 20;
+        dirLight.shadow.camera.bottom = -20;
+        dirLight.shadow.camera.left = -20;
+        dirLight.shadow.camera.right = 20;
+        scene.add(dirLight);
+
+        // 원형 투기장 바닥
+        const floorGeo = new THREE.CylinderGeometry(18, 18, 1, 32);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a3a50, roughness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.position.y = -0.5;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // 투기장 테두리 링
+        const ringGeo = new THREE.TorusGeometry(18, 0.5, 16, 64);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0xe6b800, metalness: 0.8, roughness: 0.2 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.25;
+        scene.add(ring);
+
+        // 입력 상태 관리
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'AltLeft' || e.code === 'AltRight' || e.code === 'Space' || e.code === 'Enter') e.preventDefault(); 
+            keys[e.code] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'AltLeft' || e.code === 'AltRight' || e.code === 'Space' || e.code === 'Enter') e.preventDefault();
+            keys[e.code] = false;
+        });
+
+        let p1, p2;
+        const projectiles = [];
+        const particles = [];
+        let isGameRunning = false;
+        let cameraShake = 0;
+
+        function createMeleeVisual(player, isUlt) {
+            const type = player.type;
+            const color = isUlt ? player.data.ultColor : player.data.color;
+            const scale = isUlt ? 3.0 : 1.0;
+            
+            const visualGroup = new THREE.Group();
+            visualGroup.position.copy(player.mesh.position);
+            visualGroup.position.y = 1;
+            
+            const angle = Math.atan2(player.direction.x, player.direction.z);
+            visualGroup.rotation.y = angle;
+            visualGroup.position.add(player.direction.clone().multiplyScalar(1.5 * scale));
+
+            let isSpinning = false;
+
+            if (type === 'luffy') {
+                const armGeo = new THREE.CylinderGeometry(0.3*scale, 0.3*scale, 3*scale, 8);
+                const armMat = new THREE.MeshBasicMaterial({color: 0xffdbac});
+                const arm = new THREE.Mesh(armGeo, armMat);
+                arm.rotation.x = Math.PI/2;
+                arm.position.z = 1.5 * scale;
+                const fist = new THREE.Mesh(new THREE.BoxGeometry(1.2*scale, 1.2*scale, 1.2*scale), new THREE.MeshBasicMaterial({color: isUlt? 0xff4500 : 0xffdbac}));
+                fist.position.z = 3.0 * scale;
+                visualGroup.add(arm, fist);
+            } else if (type === 'tanjiro') {
+                const arc = new THREE.Mesh(new THREE.TorusGeometry(1.8*scale, 0.2*scale, 8, 16, Math.PI), new THREE.MeshBasicMaterial({color: color, side: THREE.DoubleSide}));
+                arc.rotation.x = Math.PI/2;
+                visualGroup.add(arc);
+                isSpinning = true;
+            } else if (type === 'sukuna') {
+                const slash1 = new THREE.Mesh(new THREE.BoxGeometry(3*scale, 0.1, 0.1), new THREE.MeshBasicMaterial({color: color}));
+                slash1.rotation.y = Math.PI/4;
+                const slash2 = new THREE.Mesh(new THREE.BoxGeometry(3*scale, 0.1, 0.1), new THREE.MeshBasicMaterial({color: color}));
+                slash2.rotation.y = -Math.PI/4;
+                visualGroup.add(slash1, slash2);
+            } else {
+                const ringGeo = new THREE.TorusGeometry(1.5*scale, 0.4*scale, 8, 24);
+                const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: color }));
+                visualGroup.add(ring);
+            }
+
+            scene.add(visualGroup);
+            particles.push({ mesh: visualGroup, life: 1.0, type: 'customMelee', spin: isSpinning });
+        }
+
+        function createProjectileVisual(player, isUlt) {
+            const type = player.type;
+            const color = isUlt ? player.data.ultColor : player.data.color;
+            const scale = isUlt ? 2.5 : 1.0;
+            const group = new THREE.Group();
+
+            if (type === 'naruto') {
+                if (isUlt) { 
+                    const core = new THREE.Mesh(new THREE.SphereGeometry(1.2*scale, 16, 16), new THREE.MeshBasicMaterial({color: color, transparent:true, opacity:0.8}));
+                    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5*scale, 0.1*scale, 8, 24), new THREE.MeshBasicMaterial({color: 0xffffff}));
+                    ring.rotation.x = Math.PI/2;
+                    group.add(core, ring);
+                    group.userData = { rotZ: 0.3, rotX: 0.15 };
+                } else { 
+                    const b1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.3), new THREE.MeshBasicMaterial({color: 0xaaaaaa}));
+                    const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 1.5), new THREE.MeshBasicMaterial({color: 0xaaaaaa}));
+                    group.add(b1, b2);
+                    group.userData = { rotY: 0.6 };
+                }
+            } else if (type === 'goku') {
+                if (isUlt) { 
+                    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.8*scale, 0.8*scale, 3*scale, 16), new THREE.MeshBasicMaterial({color: color, transparent:true, opacity:0.9}));
+                    beam.rotation.x = Math.PI/2;
+                    group.add(beam);
+                    group.userData = { rotZ: 0.4 };
+                } else {
+                    group.add(new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshBasicMaterial({color: color})));
+                }
+            } else if (type === 'megumi') { 
+                const dog = new THREE.Mesh(new THREE.BoxGeometry(0.8*scale, 0.8*scale, 1.2*scale), new THREE.MeshBasicMaterial({color: color}));
+                const ear1 = new THREE.Mesh(new THREE.ConeGeometry(0.2*scale, 0.4*scale, 4), new THREE.MeshBasicMaterial({color: color}));
+                ear1.position.set(0.3*scale, 0.6*scale, -0.3*scale);
+                const ear2 = new THREE.Mesh(new THREE.ConeGeometry(0.2*scale, 0.4*scale, 4), new THREE.MeshBasicMaterial({color: color}));
+                ear2.position.set(-0.3*scale, 0.6*scale, -0.3*scale);
+                group.add(dog, ear1, ear2);
+            } else { 
+                 const core = new THREE.Mesh(new THREE.SphereGeometry(0.6*scale, 16, 16), new THREE.MeshBasicMaterial({ color: color }));
+                 const glow = new THREE.Mesh(new THREE.SphereGeometry(1.0*scale, 16, 16), new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.4 }));
+                 group.add(core, glow);
+            }
+            return group;
+        }
+
+        function createEffect(position, color, isMelee = false, direction = null, scale = 1.0) {
+            if (isMelee) {
+                const ringGeo = new THREE.TorusGeometry(1 * scale, 0.3 * scale, 8, 24);
+                const ringMat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 1, side: THREE.DoubleSide });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.copy(position);
+                ring.position.y += 1 * scale;
+                if (direction) {
+                    const angle = Math.atan2(direction.x, direction.z);
+                    ring.rotation.y = angle;
+                }
+                scene.add(ring);
+                particles.push({ mesh: ring, life: 1.0, type: 'shockwave' });
+            } else {
+                const geo = new THREE.IcosahedronGeometry(1.2 * scale, 0);
+                const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9, wireframe: true });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(position);
+                mesh.position.y += 1 * scale;
+                
+                const coreGeo = new THREE.SphereGeometry(0.6 * scale, 8, 8);
+                const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const core = new THREE.Mesh(coreGeo, coreMat);
+                mesh.add(core);
+
+                scene.add(mesh);
+                particles.push({ mesh: mesh, life: 1.0, type: 'explosion' });
+            }
+        }
+
+        class Player {
+            constructor(x, z, type, isP1) {
+                this.isP1 = isP1;
+                this.type = type;
+                this.data = CHARACTERS[type];
+                this.health = 100;
+                this.lastAttack = 0;
+                this.hits = 0;
+                this.direction = new THREE.Vector3(isP1 ? 1 : -1, 0, 0);
+                
+                this.mesh = new THREE.Group();
+                this.mesh.position.set(x, 0, z);
+
+                // --- 아바타 세부 구성 (로블록스 스타일) ---
+                const skinMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd });
+                const shirtMat = new THREE.MeshStandardMaterial({ color: this.data.shirt });
+                const pantsMat = new THREE.MeshStandardMaterial({ color: this.data.pants });
+                const hairMat = new THREE.MeshStandardMaterial({ color: this.data.hair });
+
+                // 머리 그룹 (1.4 높이)
+                this.headGroup = new THREE.Group();
+                this.headGroup.position.y = 1.8;
+
+                const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+                const head = new THREE.Mesh(headGeo, skinMat);
+                head.castShadow = true;
+                this.headGroup.add(head);
+
+                // 장신구 및 머리카락
+                if (type === 'luffy') {
+                    // 밀짚모자
+                    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.1, 16), new THREE.MeshStandardMaterial({color: 0xddaa55}));
+                    brim.position.y = 0.4;
+                    const top = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), new THREE.MeshStandardMaterial({color: 0xddaa55}));
+                    top.position.y = 0.55;
+                    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1, 16), new THREE.MeshStandardMaterial({color: 0xff0000}));
+                    band.position.y = 0.45;
+                    this.headGroup.add(brim, top, band);
+                } else {
+                    // 기본 뾰족 머리
+                    const hairGeo = new THREE.BoxGeometry(0.8, 0.25, 0.8);
+                    const hair = new THREE.Mesh(hairGeo, hairMat);
+                    hair.position.y = 0.4;
+                    this.headGroup.add(hair);
+                }
+
+                if (type === 'gojo') {
+                    // 고죠 안대
+                    const blindfold = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.75), new THREE.MeshStandardMaterial({color: 0x111111}));
+                    blindfold.position.y = 0.1;
+                    this.headGroup.add(blindfold);
+                } else if (type === 'naruto') {
+                    // 나루토 서클렛
+                    const headband = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.15, 0.75), new THREE.MeshStandardMaterial({color: 0x0000aa}));
+                    headband.position.y = 0.2;
+                    this.headGroup.add(headband);
+                } else {
+                    // 일반 눈
+                    const eyeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+                    const eyeMat = new THREE.MeshBasicMaterial({color: 0x000000});
+                    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                    leftEye.position.set(-0.15, 0.1, 0.36);
+                    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                    rightEye.position.set(0.15, 0.1, 0.36);
+                    this.headGroup.add(leftEye, rightEye);
+                }
+
+                // 몸통
+                const torsoGeo = new THREE.BoxGeometry(0.8, 0.8, 0.4);
+                this.torso = new THREE.Mesh(torsoGeo, shirtMat);
+                this.torso.position.y = 1.0;
+                this.torso.castShadow = true;
+
+                // 팔다리 생성 (어깨/골반을 기준으로 회전하도록 Translate 사용)
+                const armGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+                armGeo.translate(0, -0.3, 0); 
+                const legGeo = new THREE.BoxGeometry(0.3, 0.6, 0.3);
+                legGeo.translate(0, -0.3, 0);
+
+                this.leftArm = new THREE.Mesh(armGeo, skinMat);
+                this.leftArm.position.set(-0.55, 1.3, 0);
+                this.leftArm.castShadow = true;
+
+                this.rightArm = new THREE.Mesh(armGeo, skinMat);
+                this.rightArm.position.set(0.55, 1.3, 0);
+                this.rightArm.castShadow = true;
+
+                this.leftLeg = new THREE.Mesh(legGeo, pantsMat);
+                this.leftLeg.position.set(-0.2, 0.6, 0);
+                this.leftLeg.castShadow = true;
+
+                this.rightLeg = new THREE.Mesh(legGeo, pantsMat);
+                this.rightLeg.position.set(0.2, 0.6, 0);
+                this.rightLeg.castShadow = true;
+
+                // 그룹에 모두 합치기
+                this.mesh.add(this.headGroup, this.torso, this.leftArm, this.rightArm, this.leftLeg, this.rightLeg);
+                scene.add(this.mesh);
+                
+                this.walkCycle = 0;
+                this.updateUltUI();
+            }
+
+            addHit() {
+                if (this.hits < 3) {
+                    this.hits++;
+                    this.updateUltUI();
+                }
+            }
+
+            updateUltUI() {
+                const uiId = this.isP1 ? 'p1-ult' : 'p2-ult';
+                const el = document.getElementById(uiId);
+                if (this.hits >= 3) {
+                    el.innerText = `🔥 필살기 준비 완료! (Alt) 🔥`;
+                    el.classList.replace('text-gray-300', 'text-yellow-400');
+                    el.classList.add('animate-pulse');
+                } else {
+                    el.innerText = `⚡ 필살기: ${this.hits}/3 (${this.isP1 ? '왼쪽 ' : '오른쪽 '}Alt)`;
+                    el.classList.replace('text-yellow-400', 'text-gray-300');
+                    el.classList.remove('animate-pulse');
+                }
+            }
+
+            useUltimate(defender) {
+                if (this.hits < 3) return;
+                this.hits = 0;
+                this.updateUltUI();
+                cameraShake = 1.2; 
+
+                if (this.data.attackType === 'melee') {
+                    const range = this.data.range * 1.5;
+                    const dist = this.mesh.position.distanceTo(defender.mesh.position);
+                    
+                    createMeleeVisual(this, true);
+
+                    if (dist <= range) {
+                        defender.takeDamage(45, this.direction.clone().multiplyScalar(3.0)); 
+                        createEffect(defender.mesh.position, 0xffffff, true, this.direction, 2.5);
+                    }
+                } else {
+                    const projMesh = createProjectileVisual(this, true);
+                    projMesh.position.copy(this.mesh.position);
+                    projMesh.position.y = 1.0;
+                    
+                    const angle = Math.atan2(this.direction.x, this.direction.z);
+                    projMesh.rotation.y = angle;
+                    
+                    scene.add(projMesh);
+                    projectiles.push({
+                        mesh: projMesh,
+                        direction: this.direction.clone(),
+                        speed: this.data.projectileSpeed * 1.5,
+                        damage: 40,
+                        owner: this.isP1 ? 'p1' : 'p2',
+                        color: this.data.ultColor,
+                        isUltimate: true
+                    });
+                }
+            }
+
+            updateRotation(dx, dz) {
+                if (dx !== 0 || dz !== 0) {
+                    this.direction.set(dx, 0, dz).normalize();
+                    const angle = Math.atan2(this.direction.x, this.direction.z);
+                    this.mesh.rotation.y = angle;
+                }
+            }
+
+            animateWalk(isMoving) {
+                if (isMoving) {
+                    this.walkCycle += 0.25;
+                    const swing = Math.sin(this.walkCycle) * 0.8;
+                    // 팔다리 흔들기
+                    this.leftArm.rotation.x = -swing;
+                    this.rightArm.rotation.x = swing;
+                    this.leftLeg.rotation.x = swing;
+                    this.rightLeg.rotation.x = -swing;
+                    // 몸통이 살짝 위아래로 움직임
+                    this.mesh.position.y = Math.abs(Math.sin(this.walkCycle * 2)) * 0.1;
+                } else {
+                    this.walkCycle = 0;
+                    this.leftArm.rotation.x = 0;
+                    this.rightArm.rotation.x = 0;
+                    this.leftLeg.rotation.x = 0;
+                    this.rightLeg.rotation.x = 0;
+                    this.mesh.position.y = 0;
+                }
+            }
+
+            takeDamage(amount, knockbackDir) {
+                this.health -= amount;
+                if (this.health < 0) this.health = 0;
+                
+                const barId = this.isP1 ? 'p1-health' : 'p2-health';
+                document.getElementById(barId).style.width = `${this.health}%`;
+
+                if (knockbackDir) {
+                    this.mesh.position.add(knockbackDir.clone().multiplyScalar(0.5));
+                }
+                
+                // 피격시 옷이 잠깐 하얗게 번쩍임
+                this.torso.material.color.setHex(0xffffff);
+                setTimeout(() => {
+                    if(this.torso) this.torso.material.color.setHex(this.data.shirt);
+                }, 100);
+
+                cameraShake = 0.5;
+                if (this.health <= 0) endGame(this.isP1 ? 'p2' : 'p1');
+            }
+        }
+
+        function handleAttack(attacker, defender) {
+            const now = Date.now();
+            if (now - attacker.lastAttack < attacker.data.cooldown) return;
+            attacker.lastAttack = now;
+
+            if (attacker.data.attackType === 'melee') {
+                const dist = attacker.mesh.position.distanceTo(defender.mesh.position);
+                createMeleeVisual(attacker, false);
+
+                if (dist <= attacker.data.range) {
+                    defender.takeDamage(attacker.data.damage, attacker.direction);
+                    attacker.addHit();
+                    createEffect(defender.mesh.position, attacker.data.color, true, attacker.direction);
+                }
+            } else {
+                const projMesh = createProjectileVisual(attacker, false);
+                projMesh.position.copy(attacker.mesh.position);
+                projMesh.position.y = 1;
+                
+                const angle = Math.atan2(attacker.direction.x, attacker.direction.z);
+                projMesh.rotation.y = angle;
+                
+                scene.add(projMesh);
+                projectiles.push({ 
+                    mesh: projMesh, 
+                    direction: attacker.direction.clone(), 
+                    speed: attacker.data.projectileSpeed, 
+                    damage: attacker.data.damage, 
+                    owner: attacker.isP1 ? 'p1' : 'p2', 
+                    color: attacker.data.color,
+                    isUltimate: false
+                });
+            }
+        }
+
+        function renderRoster() {
+            const rosterEl = document.getElementById('roster');
+            rosterEl.innerHTML = '';
+            
+            for (const [key, char] of Object.entries(CHARACTERS)) {
+                const isUnlocked = unlockedChars.includes(key);
+                const el = document.createElement('div');
+                el.className = `char-card bg-gray-800 rounded-xl p-4 flex flex-col items-center shadow-lg ${isUnlocked ? '' : 'locked'}`;
+                
+                const colorBox = document.createElement('div');
+                colorBox.className = 'w-16 h-16 rounded-lg mb-2 border-2 border-gray-600';
+                colorBox.style.backgroundColor = '#' + char.color.toString(16).padStart(6, '0');
+                
+                el.innerHTML = `
+                    <div class="font-black text-lg text-white mb-1">${char.name}</div>
+                    <div class="text-xs text-gray-400 text-center mb-2 h-8">${char.desc}</div>
+                `;
+                el.insertBefore(colorBox, el.firstChild);
+
+                if (!isUnlocked) {
+                    el.innerHTML += `<div class="mt-2 text-yellow-400 font-bold text-sm">🔒 ${char.price} 코인</div>`;
+                    el.onclick = () => buyCharacter(key, char.price);
+                } else {
+                    el.onclick = () => selectCharacter(key, el);
+                }
+                
+                rosterEl.appendChild(el);
+            }
+            document.getElementById('lobby-coins').innerText = myCoins;
+        }
+
+        function buyCharacter(key, price) {
+            if (myCoins >= price) {
+                myCoins -= price;
+                unlockedChars.push(key);
+                renderRoster();
+            } else {
+                const coinEl = document.getElementById('lobby-coins');
+                coinEl.style.color = 'red';
+                setTimeout(() => coinEl.style.color = '', 500);
+            }
+        }
+
+        let p1TurnToSelect = true;
+        function selectCharacter(key, element) {
+            const cards = document.querySelectorAll('.char-card');
+            
+            if (p1TurnToSelect) {
+                selectedP1 = key;
+                document.getElementById('p1-selection-text').innerText = CHARACTERS[key].name;
+                document.getElementById('p1-selection-text').style.color = '#' + CHARACTERS[key].color.toString(16).padStart(6,'0');
+                cards.forEach(c => c.classList.remove('selected-p1'));
+                element.classList.add('selected-p1');
+                p1TurnToSelect = false;
+            } else {
+                selectedP2 = key;
+                document.getElementById('p2-selection-text').innerText = CHARACTERS[key].name;
+                document.getElementById('p2-selection-text').style.color = '#' + CHARACTERS[key].color.toString(16).padStart(6,'0');
+                cards.forEach(c => c.classList.remove('selected-p2'));
+                element.classList.add('selected-p2');
+                p1TurnToSelect = true;
+            }
+
+            const startBtn = document.getElementById('start-btn');
+            if (selectedP1 && selectedP2) {
+                startBtn.disabled = false;
+                startBtn.classList.replace('bg-gray-600', 'bg-yellow-500');
+                startBtn.classList.replace('text-gray-300', 'text-black');
+                startBtn.classList.add('hover:scale-105');
+                startBtn.innerText = '⚔️ 전투 시작! ⚔️';
+                startBtn.onclick = startGame;
+            }
+        }
+
+        function startGame() {
+            document.getElementById('selection-screen').classList.add('hidden');
+            document.getElementById('ui-layer').classList.remove('hidden');
+            document.getElementById('coin-display').innerText = myCoins;
+            
+            document.getElementById('p1-name').innerText = `1P: ${CHARACTERS[selectedP1].name}`;
+            document.getElementById('p2-name').innerText = `2P: ${CHARACTERS[selectedP2].name}`;
+            
+            document.getElementById('p1-health').style.width = '100%';
+            document.getElementById('p2-health').style.width = '100%';
+
+            if (p1) scene.remove(p1.mesh);
+            if (p2) scene.remove(p2.mesh);
+            projectiles.forEach(p => scene.remove(p.mesh));
+            particles.forEach(p => scene.remove(p.mesh));
+            projectiles.length = 0;
+            particles.length = 0;
+
+            p1 = new Player(-8, 0, selectedP1, true);
+            p2 = new Player(8, 0, selectedP2, false);
+            p2.mesh.rotation.y = Math.PI; 
+
+            isGameRunning = true;
+        }
+
+        function endGame(winnerIndex) {
+            isGameRunning = false;
+            const reward = 20;
+            myCoins += reward;
+            
+            const winnerName = winnerIndex === 'p1' ? CHARACTERS[selectedP1].name : CHARACTERS[selectedP2].name;
+            const color = winnerIndex === 'p1' ? 'text-red-400' : 'text-blue-400';
+            
+            document.getElementById('winner-text').innerHTML = `<span class="${color}">${winnerName}</span> 승리!`;
+            document.getElementById('reward-text').innerText = `코인 +${reward} 획득! (총 ${myCoins}코인)`;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        function resetToLobby() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('ui-layer').classList.add('hidden');
+            document.getElementById('selection-screen').classList.remove('hidden');
+            selectedP1 = null;
+            selectedP2 = null;
+            p1TurnToSelect = true;
+            document.getElementById('p1-selection-text').innerText = '선택 대기중...';
+            document.getElementById('p1-selection-text').style.color = 'white';
+            document.getElementById('p2-selection-text').innerText = '선택 대기중...';
+            document.getElementById('p2-selection-text').style.color = 'white';
+            const cards = document.querySelectorAll('.char-card');
+            cards.forEach(c => { c.classList.remove('selected-p1'); c.classList.remove('selected-p2'); });
+            
+            const startBtn = document.getElementById('start-btn');
+            startBtn.disabled = true;
+            startBtn.innerText = '캐릭터를 선택하세요';
+            startBtn.classList.replace('bg-yellow-500', 'bg-gray-600');
+            startBtn.classList.replace('text-black', 'text-gray-300');
+            startBtn.classList.remove('hover:scale-105');
+            
+            renderRoster();
+        }
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+
+            if (cameraShake > 0) {
+                camera.position.x = (Math.random() - 0.5) * cameraShake;
+                camera.position.y = 25 + (Math.random() - 0.5) * cameraShake;
+                cameraShake *= 0.9;
+                if (cameraShake < 0.05) {
+                    cameraShake = 0;
+                    camera.position.set(0, 25, 20);
+                }
+            }
+
+            if (!isGameRunning) {
+                renderer.render(scene, camera);
+                return;
+            }
+
+            const speed = 0.2;
+            let p1dx = 0, p1dz = 0;
+            let p2dx = 0, p2dz = 0;
+
+            if (keys['KeyW']) p1dz -= speed;
+            if (keys['KeyS']) p1dz += speed;
+            if (keys['KeyA']) p1dx -= speed;
+            if (keys['KeyD']) p1dx += speed;
+            p1.updateRotation(p1dx, p1dz);
+            p1.animateWalk(p1dx !== 0 || p1dz !== 0);
+            
+            p1.mesh.position.x += p1dx;
+            p1.mesh.position.z += p1dz;
+            
+            if (keys['Space']) handleAttack(p1, p2);
+            if (keys['AltLeft']) p1.useUltimate(p2);
+
+            // 1P 주먹지르기 애니메이션 (최근 공격 후 150ms 동안 팔 들기)
+            if (Date.now() - p1.lastAttack < 150) p1.rightArm.rotation.x = -Math.PI / 2;
+
+            if (keys['ArrowUp']) p2dz -= speed;
+            if (keys['ArrowDown']) p2dz += speed;
+            if (keys['ArrowLeft']) p2dx -= speed;
+            if (keys['ArrowRight']) p2dx += speed;
+            p2.updateRotation(p2dx, p2dz);
+            p2.animateWalk(p2dx !== 0 || p2dz !== 0);
+
+            p2.mesh.position.x += p2dx;
+            p2.mesh.position.z += p2dz;
+
+            if (keys['Enter']) handleAttack(p2, p1);
+            if (keys['AltRight']) p2.useUltimate(p1);
+
+            // 2P 주먹지르기 애니메이션
+            if (Date.now() - p2.lastAttack < 150) p2.rightArm.rotation.x = -Math.PI / 2;
+
+            const limitRadius = 17.5;
+            if (p1.mesh.position.length() > limitRadius) p1.mesh.position.setLength(limitRadius);
+            if (p2.mesh.position.length() > limitRadius) p2.mesh.position.setLength(limitRadius);
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let proj = projectiles[i];
+                proj.mesh.position.add(proj.direction.clone().multiplyScalar(proj.speed));
+                
+                if (proj.mesh.userData) {
+                    if (proj.mesh.userData.rotY) proj.mesh.rotation.y += proj.mesh.userData.rotY;
+                    if (proj.mesh.userData.rotX) proj.mesh.rotation.x += proj.mesh.userData.rotX;
+                    if (proj.mesh.userData.rotZ) proj.mesh.rotation.z += proj.mesh.userData.rotZ;
+                }
+                
+                let target = proj.owner === 'p1' ? p2 : p1;
+                const hitRadius = proj.isUltimate ? 3.0 : 1.5;
+                if (proj.mesh.position.distanceTo(target.mesh.position) < hitRadius) {
+                    target.takeDamage(proj.damage, proj.direction);
+                    createEffect(proj.mesh.position, proj.color, false, null, proj.isUltimate ? 2.5 : 1.0);
+                    if (proj.owner === 'p1') p1.addHit();
+                    else p2.addHit();
+                    scene.remove(proj.mesh);
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+
+                if (proj.mesh.position.length() > 25) {
+                    scene.remove(proj.mesh);
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.life -= 0.04; 
+                
+                if (p.type === 'shockwave') {
+                    p.mesh.scale.addScalar(0.6);
+                    p.mesh.material.opacity = p.life;
+                } else if (p.type === 'explosion') {
+                    p.mesh.rotation.y += 0.1;
+                    p.mesh.rotation.x += 0.1;
+                    p.mesh.scale.addScalar(0.2);
+                    p.mesh.material.opacity = p.life;
+                } else if (p.type === 'customMelee') {
+                    if (p.spin) p.mesh.rotation.y -= 0.3; 
+                    p.mesh.scale.addScalar(0.1);
+                    p.mesh.traverse((child) => {
+                        if (child.material && child.material.transparent !== undefined) {
+                            child.material.transparent = true;
+                            child.material.opacity = p.life;
+                        }
+                    });
+                }
+                
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        renderRoster();
+        gameLoop();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
