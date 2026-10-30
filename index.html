@@ -53,6 +53,8 @@
   .maker { margin-top:8px; font-size:15px; color:#ffd89a; }
   .tag { align-self:flex-start; margin-top:12px; font-size:13px; padding:3px 10px; border-radius:99px;
          background:rgba(255,179,71,.15); color:var(--accent); }
+  .badge.upd { right:auto; left:18px; background:#ff6b6b; color:#fff; animation:pop 1.6s ease-in-out infinite; }
+  @keyframes pop { 0%,100% { transform:scale(1); } 50% { transform:scale(1.08); } }
   footer { position:relative; text-align:center; color:var(--muted); font-size:14px; padding:0 16px 32px; }
 </style>
 </head>
@@ -67,6 +69,15 @@
   <section class="star">
     <h2>⭐ 챔피언반 친구들이 만든 게임</h2>
     <div class="grid">
+      <a class="card" href="games/zombie/">
+        <span class="badge">⭐ 학생 작품</span>
+        <span class="badge upd">🆕 업데이트</span>
+        <div class="emoji">🧟</div>
+        <div class="name">좀비 서바이벌: 마지막 방어선</div>
+        <div class="how">무기 23종과 캐릭터 업그레이드로 끝없이 몰려오는 좀비와 보스를 막아요</div>
+        <div class="maker">✏️ 박건후 학생 제작</div>
+        <span class="tag">⌨️ WASD·방향키 · 스페이스바 · Shift · 👆 터치</span>
+      </a>
       <a class="card" href="games/fighter/">
         <span class="badge">⭐ 학생 작품</span>
         <div class="emoji">🥊</div>
@@ -82,14 +93,6 @@
         <div class="how">8단 점프로 발판을 건너며 날아오는 과일을 맞혀요</div>
         <div class="maker">✏️ 김소율 학생 제작</div>
         <span class="tag">⌨️ 스페이스바 점프 · 🖱️ 클릭/Z·X 발사</span>
-      </a>
-      <a class="card" href="games/zombie/">
-        <span class="badge">⭐ 학생 작품</span>
-        <div class="emoji">🧟</div>
-        <div class="name">좀비 서바이벌: 마지막 방어선</div>
-        <div class="how">상점에서 무기를 사고 끝없이 몰려오는 좀비와 보스를 막아요</div>
-        <div class="maker">✏️ 박건후 학생 제작</div>
-        <span class="tag">⌨️ WASD·방향키 · 스페이스바 · Shift · 👆 터치</span>
       </a>
       <a class="card" href="games/chammyeong/">
         <span class="badge">⭐ 학생 작품</span>
